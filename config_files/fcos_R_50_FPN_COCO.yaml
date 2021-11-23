@@ -1,0 +1,98 @@
+MODEL:
+  META_ARCHITECTURE: "FSGeneralizedRCNN"
+  WEIGHT: "catalog://ImageNetPretrained/MSRA/R-50"
+  # WEIGHT: "./Experiments_FSFCOS/Experiments_paper/COCO_DANA/model_final.pth"
+  RPN_ONLY: True
+  FCOS_ON: True
+  BACKBONE:
+    CONV_BODY: "R-50-FPN-RETINANET"
+    FREEZE_CONV_BODY_AT: 2
+  RESNETS:
+    BACKBONE_OUT_CHANNELS: 256
+  RETINANET:
+    USE_C5: False # FCOS uses P5 instead of C5
+  FCOS:
+    IOU_LOSS_TYPE: "giou"
+    LOSS_ALPHA: 0.25
+    INFERENCE_TH: 0.1
+DATASETS:
+  TRAIN: ("coco_2017_train",)
+  TEST: ("coco_2017_test",)
+  VAL: ("coco_2017_val",)
+INPUT:
+  MIN_SIZE_TRAIN: (512,)
+  MAX_SIZE_TRAIN: 512
+  MIN_SIZE_TEST: 512
+  MAX_SIZE_TEST: 512
+  # PIXEL_MEAN: [0.36870449, 0.3714285 , 0.3492053 ] # Careful, when To_BGR255 is True
+  # PIXEL_STD: [0.14533368, 0.14046172, 0.13663259]  # mean and std are in range 0-255 
+  # PIXEL_MEAN: [94.01964495, 94.7142675 , 89.0473515]
+  # PIXEL_STD: [37.0600884 , 35.8177386 , 34.84131045]
+  # PIXEL_MEAN: [94.01964495, 94.7142675 , 89.0473515]
+  # PIXEL_STD: [1.0, 1.0, 1.0]
+  # TO_BGR255: False
+  # PIXEL_MEAN: [0.485, 0.456, 0.406]
+  # PIXEL_STD: [0.229, 0.224, 0.225]
+  PIXEL_MEAN: [102.9801, 115.9465, 122.7717]
+  PIXEL_STD: [1.0, 1.0, 1.0]
+  TO_BGR255: True
+DATALOADER:
+  SIZE_DIVISIBILITY: 32
+  NUM_WORKERS: 0
+SOLVER:
+  BASE_LR: 0.001
+  WEIGHT_DECAY: 0.0001
+  STEPS: (150000, 2000000)
+  MAX_ITER: 90000
+  IMS_PER_BATCH: 8
+  WARMUP_METHOD: "constant"
+  # WARMUP_FACTOR: 0.1
+  CHECKPOINT_PERIOD: 5000
+  CONTINUE_TRAINING: False # True
+TEST:
+  IMS_PER_BATCH: 8
+  BBOX_AUG:
+    ENABLED: False
+    H_FLIP: True
+    SCALES: (400, 500, 600, 700, 900, 1000, 1100, 1200)
+    MAX_SIZE: 2000
+    SCALE_H_FLIP: True
+FEWSHOT:
+  ENABLED: True
+  N_WAYS_TRAIN: 5
+  N_WAYS_TEST: 5
+  N_CLASSES_TEST: 5
+  N_QUERY_TRAIN: 100
+  N_QUERY_TEST: 100
+  SPLIT_METHOD: 'deterministic'
+  K_SHOT: 1
+  EPISODES: 1000
+  SUPPORT_EXTRACTOR: 'same'
+  SUPPORT:
+    CROP_SIZE: (128,128)
+    CROP_MODE: 'KEEP_SIZE'
+    CROP_MARGIN: 0.1
+  SAME_SUPPORT_IN_BATCH: True # do not put to False while FineTuning
+  AAF:
+    # CFG: '/home/pierre/Documents/PHD/aaf_framework/config_files/aaf_module/feature_reweighting.yaml'
+    CFG: '/home/pierre/Documents/PHD/aaf_framework/config_files/aaf_module/dana.yaml'
+    # CFG: '/home/pierre/Documents/PHD/aaf_framework/config_files/aaf_module/meta_faster_rcnn.yaml'
+    # CFG: '/home/pierre/Documents/PHD/aaf_framework/config_files/aaf_module/dynamic.yaml'
+    # CFG: '/home/pierre/Documents/PHD/aaf_framework/config_files/aaf_module/self_adapt.yaml'
+# OUTPUT_DIR: './Experiments_aaf_framework'
+OUTPUT_DIR: '/home/pierre/Documents/PHD/Experiments_FSFCOS/Experiments_paper/COCO_DANA'
+RANDOM:
+  DISABLED: False
+LOGGING:
+  INTERVAL: 20
+  EVAL_INTERVAL: 3000
+FINETUNING: True
+FINETUNE:
+  EPISODES: 10000
+  FREEZE_AT: 5
+  LR: 0.0001
+  EXAMPLES: 'rng_same' # 'random' / 'rng_same' / 'deterministic'
+  SHOTS: [10, 30]
+  MIXED: True
+  STEPS: (10000,)
+

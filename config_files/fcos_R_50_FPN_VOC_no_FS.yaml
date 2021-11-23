@@ -1,0 +1,86 @@
+MODEL:
+  META_ARCHITECTURE: "GeneralizedRCNN"
+  # WEIGHT: "catalog://ImageNetPretrained/MSRA/R-50"
+  WEIGHT: "catalog://ImageNetPretrained/MSRA/R-50"
+  RPN_ONLY: True
+  FCOS_ON: True
+  BACKBONE:
+    CONV_BODY: "R-50-FPN-RETINANET"
+    FREEZE_CONV_BODY_AT: 2
+  RESNETS:
+    BACKBONE_OUT_CHANNELS: 256
+  RETINANET:
+    USE_C5: False # FCOS uses P5 instead of C5
+  FCOS:
+    IOU_LOSS_TYPE: "giou"
+    LOSS_ALPHA: 0.25
+    INFERENCE_TH: 0.05
+    NUM_CLASSES: 21 # For regular training and for FCOS
+DATASETS:
+  TRAIN: ("pascalv_merged_train",)
+  TEST: ("pascalv_merged_test",)
+  VAL: ("pascalv_merged_val",)
+INPUT:
+  MIN_SIZE_TRAIN: (512,)
+  MAX_SIZE_TRAIN: 512
+  MIN_SIZE_TEST: 512
+  MAX_SIZE_TEST: 512
+  # PIXEL_MEAN: [0.36870449, 0.3714285 , 0.3492053 ] # Careful, when To_BGR255 is True
+  # PIXEL_STD: [0.14533368, 0.14046172, 0.13663259]  # mean and std are in range 0-255 
+  # PIXEL_MEAN: [94.01964495, 94.7142675 , 89.0473515]
+  # PIXEL_STD: [37.0600884 , 35.8177386 , 34.84131045]
+  # PIXEL_MEAN: [94.01964495, 94.7142675 , 89.0473515]
+  # PIXEL_STD: [1.0, 1.0, 1.0]
+  # TO_BGR255: False
+  # PIXEL_MEAN: [0.485, 0.456, 0.406]
+  # PIXEL_STD: [0.229, 0.224, 0.225]
+  PIXEL_MEAN: [102.9801, 115.9465, 122.7717]
+  PIXEL_STD: [1.0, 1.0, 1.0]
+  TO_BGR255: True
+
+DATALOADER:
+  SIZE_DIVISIBILITY: 32
+  # NUM_WORKER: 0
+SOLVER:
+  BASE_LR: 0.005
+  WEIGHT_DECAY: 0.0001
+  STEPS: (60000, 80000)
+  MAX_ITER: 90000
+  IMS_PER_BATCH: 4
+  WARMUP_METHOD: "constant"
+  # WARMUP_FACTOR: 0.1
+  CHECKPOINT_PERIOD: 5000
+  CONTINUE_TRAINING: False
+TEST:
+  IMS_PER_BATCH: 32
+  BBOX_AUG:
+    ENABLED: False
+    H_FLIP: False
+    SCALES: (400, 500, 600, 700, 900, 1000, 1100, 1200)
+    MAX_SIZE: 2000
+    SCALE_H_FLIP: True
+FEWSHOT:
+  ENABLED: False
+  N_WAYS_TRAIN: 3
+  N_WAYS_TEST: 3
+  N_CLASSES_TEST: 3
+  N_QUERY_TRAIN: 100
+  N_QUERY_TEST: 100
+  SPLIT_METHOD: 'random'
+  K_SHOT: 1
+  EPISODES: 3000
+  SUPPORT_EXTRACTOR: 'same'
+  SUPPORT:
+    CROP_SIZE: (128,128)
+    CROP_MODE: 'KEEP_SIZE'
+  SAME_SUPPORT_IN_BATCH: True
+  AAF:
+    CFG: '/home/pierre/Documents/PHD/fsfcos/cfg/aaf_module/feature_reweighting.yaml'
+OUTPUT_DIR: './Experiments_FSFCOS'
+RANDOM:
+  DISABLED: False
+LOGGING:
+  INTERVAL: 20
+  EVAL_INTERVAL: 100000
+FINETUNING: False
+

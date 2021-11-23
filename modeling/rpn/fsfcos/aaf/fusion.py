@@ -30,6 +30,22 @@ class BaseFusionModule(nn.Module):
         x = x.reshape(*shape)
         return x
 
+    def forward(self, features):
+        """
+        Arguments regrouped in features dict with the following keys:
+         - support_p2: support features aligned with query
+                                List[Tensor] N_support x B x Channels x H x W
+         - query_p2: query features aligned with support
+                                List[Tensor] B x N_support x Channels x H x W
+         - support_targets: targets boxes and label corresponding to each 
+                            support imageList[BoxList]
+        
+        Returns:
+         - output_features: query features attention with support
+                                List[Tensor] B x N_support x Channels x H x W
+        """
+        pass
+
 
 
 @registry.FUSION_MODULE.register("IDENTITY")

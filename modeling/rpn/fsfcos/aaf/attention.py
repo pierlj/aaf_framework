@@ -20,6 +20,25 @@ class BaseAttention(nn.Module):
         self.in_mode = AAFIOMode.Q_BNCHW_S_NBCHW
         self.out_mode = AAFIOMode.Q_BNCHW_S_NBCHW
 
+    def forward(self, features):
+        """
+        Arguments regrouped in features dict with at least the following keys 
+        (it can change when align_first=False):
+         - support_p1: support features aligned with query
+                                List[Tensor] N_support x B x Channels x H x W
+         - query_p1: query features aligned with support
+                                List[Tensor] B x N_support x Channels x H x W
+         - support_targets: targets boxes and label corresponding to each 
+                            support imageList[BoxList]
+        
+        Returns:
+         - support_p2: support features attention with query
+                                List[Tensor] N_support x B x Channels x H x W
+         - query_p2: query features attention with support
+                                List[Tensor] B x N_support x Channels x H x W
+        """
+        pass
+
 
 @registry.ATTENTION_MODULE.register("IDENTITY")
 class AttentionIdentity(BaseAttention):

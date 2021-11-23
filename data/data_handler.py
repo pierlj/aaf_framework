@@ -124,7 +124,7 @@ class DataHandler():
 
     def get_two_loaders(self, classes, datasets, seed=None):
         """
-        Parameters:
+        Arguments:
             classes: list of classes
             datasets: list of datasets list first element is query dataset, second is support
 
@@ -145,7 +145,7 @@ class DataHandler():
         """
             Select parameters for the creation of the dataloader
 
-            Parameters:
+            Arguments:
                 selected_classes: list of classes that should be annotated in the loader
                 datasets: list of dataset in which load the data
                 is_support: controls whether it a support or query loader

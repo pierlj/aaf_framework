@@ -27,7 +27,7 @@ class ExampleSelector():
         Different behaviors are expected when finetuning is on or off 
         and following the network params.
 
-        Parameters:
+        Arguments:
             dataset: dataset object in which sampling is allowed
             selected_classes: classes selected for the sampling
             n_query: number of example for each class

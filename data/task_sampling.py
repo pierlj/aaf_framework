@@ -11,7 +11,7 @@ class TaskSampler():
     """
     def __init__(self, cfg, classes, rng, eval=False, is_finetune=False):
         """
-        Parameters: 
+        Arguments: 
             - classes: list of all classes
             - cfg: cfg object for the current training 
         """
@@ -60,7 +60,7 @@ class TaskSampler():
         """
         Create two tasks for the episode (train and test) by sampling classes within the allowed range.
 
-        Parameters:
+        Arguments:
         - n_ways_train: number of classes for training task
         - n_ways_test: number of classes for testing task
         - verbose: outputs information about classes selected for the current tasks
@@ -87,7 +87,7 @@ class TaskSampler():
         """
         Sample classes for a task and create dataset objects for support and query sets. 
         
-        Parameters:
+        Arguments:
         - n_ways: number of classes for the task
         - classes_from: classes list from which classes are chosen
         - verbose: display selected classes for current task
@@ -107,7 +107,7 @@ class TaskSampler():
         """
         Create batches of classes. 
         
-        Parameters:
+        Arguments:
         - n_ways: number of classes for the task
         - classes_from: classes list from which classes are chosen
         - verbose: display selected classes for current task

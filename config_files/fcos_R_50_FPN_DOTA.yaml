@@ -1,7 +1,7 @@
 MODEL:
   META_ARCHITECTURE: "FSGeneralizedRCNN"
-  # WEIGHT: "catalog://ImageNetPretrained/MSRA/R-50"
-  WEIGHT: "./Experiments_FSFCOS/DOTA/DANA/model_final.pth"
+  WEIGHT: "catalog://ImageNetPretrained/MSRA/R-50"
+  # WEIGHT: "./Experiments_FSFCOS/DOTA/DANA/model_final.pth"
   RPN_ONLY: True
   FCOS_ON: True
   BACKBONE:
@@ -48,7 +48,7 @@ SOLVER:
   IMS_PER_BATCH: 8
   WARMUP_METHOD: "constant"
   # WARMUP_FACTOR: 0.1
-  CHECKPOINT_PERIOD: 100
+  CHECKPOINT_PERIOD: 5000
   CONTINUE_TRAINING: False # True
 TEST:
   IMS_PER_BATCH: 8
@@ -67,7 +67,7 @@ FEWSHOT:
   N_QUERY_TEST: 100
   SPLIT_METHOD: 'deterministic'
   K_SHOT: 1
-  EPISODES: 0
+  EPISODES: 1000
   SUPPORT_EXTRACTOR: 'same'
   SUPPORT:
     CROP_SIZE: (128,128)
@@ -75,18 +75,18 @@ FEWSHOT:
     CROP_MARGIN: 0.1
   SAME_SUPPORT_IN_BATCH: True # do not put to False while FineTuning
   AAF:
-    # CFG: '/home/pierre/Documents/PHD/aaf_framework/config_files/aaf_module/feature_reweighting.yaml'
-    CFG: '/home/pierre/Documents/PHD/aaf_framework/config_files/aaf_module/dana.yaml'
+    CFG: '/home/pierre/Documents/PHD/aaf_framework/config_files/aaf_module/feature_reweighting.yaml'
+    # CFG: '/home/pierre/Documents/PHD/aaf_framework/config_files/aaf_module/dana.yaml'
     # CFG: '/home/pierre/Documents/PHD/aaf_framework/config_files/aaf_module/meta_faster_rcnn.yaml'
     # CFG: '/home/pierre/Documents/PHD/aaf_framework/config_files/aaf_module/dynamic.yaml'
     # CFG: '/home/pierre/Documents/PHD/aaf_framework/config_files/aaf_module/self_adapt.yaml'
 # OUTPUT_DIR: './Experiments_aaf_framework'
-OUTPUT_DIR: '/home/pierre/Documents/PHD/Experiments_FSFCOS/DOTA/DANA'
+OUTPUT_DIR: '/home/pierre/Documents/PHD/Experiments_FSFCOS/DOTA/FRW'
 RANDOM:
   DISABLED: False
 LOGGING:
   INTERVAL: 20
-  EVAL_INTERVAL: 200
+  EVAL_INTERVAL: 1000
 FINETUNING: True
 FINETUNE:
   EPISODES: 10000

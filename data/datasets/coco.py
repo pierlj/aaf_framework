@@ -219,3 +219,34 @@ class SupportCOCODataset(COCODataset):
             # plot_single_img_boxes(img, target, self.cfg)
 
         return img, target, idx
+
+
+class FinetuneCOCODataset(COCODataset):
+    def __init__(self, *args, rng=None, **kwargs):
+        self.cfg = kwargs['cfg']
+        del kwargs['cfg']
+        super(FinetuneCOCODataset, self).__init__(*args, **kwargs)
+
+        if rng is not None:
+            self.rng = rng
+        else:
+            self.rng = torch.Generator()
+
+    def __getitem__(self, item_idx):
+        idx, class_selected = item_idx
+        self.selected_classes = torch.Tensor([class_selected])
+        img, target, idx = super(FinetuneCOCODataset, self).__getitem__(idx)
+
+        # Sample only 1 example per image
+        labels = target.get_field('labels')
+        bbox = target.bbox
+        keep = torch.randint(labels.shape[0], (1, ), generator=self.rng)
+
+        labels = labels[keep]
+        bbox = bbox[keep]
+
+        target.bbox = bbox
+        target.add_field('labels', labels)
+
+        # plot_single_img_boxes(img, target, self.cfg)
+        return img, target, idx

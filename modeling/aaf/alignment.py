@@ -2,7 +2,7 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 
-from .... import registry
+from .. import registry
 from .utils import AAFIOMode
 
 

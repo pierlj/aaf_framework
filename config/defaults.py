@@ -414,6 +414,8 @@ _C.FEWSHOT.SUPPORT.CROP_SIZE = (128, 128)
 _C.FEWSHOT.SUPPORT.CROP_MARGIN = 0.5
 # Either 'KEEP_RATIO' or 'KEEP_SIZE'
 _C.FEWSHOT.SUPPORT.CROP_MODE = 'KEEP_SIZE'
+# Center cropped object in support image
+_C.FEWSHOT.SUPPORT.CROP_CENTER = False
 
 #------------------------------------------------------------------------------#
 # AAF Module

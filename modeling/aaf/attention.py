@@ -3,8 +3,8 @@ from torch import nn
 import torch.nn.functional as F
 import torchvision
 
-from .... import registry
-from .....utils import apply_tensor_list
+from .. import registry
+from ...utils import apply_tensor_list
 from .utils import BackgroundAttenuationBlock, AAFIOMode, RelationGRU
 
 

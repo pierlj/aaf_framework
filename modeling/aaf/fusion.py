@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 
-from .... import registry
+from .. import registry
 from .utils import AAFIOMode
 
 class BaseFusionModule(nn.Module):

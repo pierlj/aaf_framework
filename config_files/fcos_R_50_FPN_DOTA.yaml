@@ -72,7 +72,7 @@ FEWSHOT:
   SUPPORT:
     CROP_SIZE: (128,128)
     CROP_MODE: 'KEEP_SIZE'
-    CROP_MARGIN: 0.1
+    CROP_MARGIN: 0.5
   SAME_SUPPORT_IN_BATCH: True # do not put to False while FineTuning
   AAF:
     CFG: '/home/pierre/Documents/PHD/aaf_framework/config_files/aaf_module/feature_reweighting.yaml'

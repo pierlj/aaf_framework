@@ -9,7 +9,7 @@ from .loss import make_fcos_loss_evaluator
 from fcos_core.layers import Scale
 from fcos_core.layers import DFConv2d
 
-from .aaf import AAFModule
+from ...aaf import AAFModule
 
 
 class FSFCOSHead(torch.nn.Module):

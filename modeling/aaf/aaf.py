@@ -1,8 +1,8 @@
 import torch
 from torch import nn
 
-from .... import registry
-from .....config.aaf_module import cfg as aaf_cfg
+from .. import registry
+from ...config.aaf_module import cfg as aaf_cfg
 from .utils import AAFIOMode, prime_factors
 
 class AAFModule(nn.Module):

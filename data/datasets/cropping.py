@@ -2,7 +2,6 @@ import torch
 from fcos_core.structures.bounding_box import BoxList
 from ...utils.visualization import plot_single_img_boxes
 
-
 class CroppingModule():
     """
     Cropping module manages how support examples are cropped and resized so 
@@ -13,6 +12,7 @@ class CroppingModule():
         self.mode = mode
         self.size = cfg.FEWSHOT.SUPPORT.CROP_SIZE
         self.margin = cfg.FEWSHOT.SUPPORT.CROP_MARGIN
+        self.center_crop = cfg.FEWSHOT.SUPPORT.CROP_CENTER
 
     def crop(self, img, target):
         crop_method = getattr(self, 'crop_' + self.mode.lower())
@@ -89,7 +89,7 @@ class CroppingModule():
 
     def crop_keep_size(self, img, target):
         """
-        Keep size as in original img but cropped in maller size
+        Keep size as in original img but cropped in smaller size
         For object larger, resize is still required.
         """
         box = target.bbox[0].long()
@@ -104,10 +104,12 @@ class CroppingModule():
 
         box_inside = box - enlarged_box[:2].repeat(2)
         box_inside = box_inside.long()
-        
-        wh_enlarged = enlarged_box[2:] - enlarged_box[:2]
-        box_inside[::2] += (wh_enlarged[0] / 2 - torch.mean(box_inside[::2].float())).long()
-        box_inside[1::2] += (wh_enlarged[1] / 2 - torch.mean(box_inside[1::2].float())).long()
+
+        # Center crop 
+        if self.center_crop:
+            wh_enlarged = enlarged_box[2:] - enlarged_box[:2]
+            box_inside[::2] += (wh_enlarged[0] / 2 - torch.mean(box_inside[::2].float())).long()
+            box_inside[1::2] += (wh_enlarged[1] / 2 - torch.mean(box_inside[1::2].float())).long()
 
 
         enlarged_box = enlarged_box.long()
@@ -138,12 +140,18 @@ class CroppingModule():
 
         shape = torch.tensor(shape)
 
-        enlarged_box[:2] = torch.max(torch.zeros_like(box[:2]), box[:2] - (new_box_size - hw)/2) + \
-                            torch.min(torch.zeros_like(box[:2]), shape[-2:].flip(0) - (box[2:] + (new_box_size - hw) / 2 )) - \
+        pixel_shift = (new_box_size - hw) / 2
+        random_d = torch.rand(2) * 2 - 1 # get random shift between -1 and 1
+        delta = pixel_shift * random_d # random pixel shift for the box inside enlarged one
+
+        enlarged_box[:2] = torch.max(torch.zeros_like(box[:2]), box[:2] - (pixel_shift + delta)) + \
+                            torch.min(torch.zeros_like(box[:2]), shape[-2:].flip(0) - (box[2:] + pixel_shift - delta)) - \
                             hw * margin
-        enlarged_box[2:] = torch.min(torch.ones_like(box[:2]) * shape[-2:].flip(0), box[2:] + (new_box_size - hw)/2) + \
-                            torch.max(torch.zeros_like(box[:2]),(new_box_size - hw) /2 - box[:2]) + \
+        enlarged_box[2:] = torch.min(torch.ones_like(box[:2]) * shape[-2:].flip(0), box[2:] + pixel_shift - delta) + \
+                            torch.max(torch.zeros_like(box[:2]),pixel_shift + delta - box[:2]) + \
                             hw * margin
+
+        enlarged_box[:2] = enlarged_box[:2] 
 
         enlarged_box[::2] = enlarged_box[::2].clamp(0, shape[2])
         enlarged_box[1::2] = enlarged_box[1::2].clamp(0, shape[1])

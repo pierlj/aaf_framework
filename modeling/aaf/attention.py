@@ -167,45 +167,6 @@ class AttentionRWB(BaseAttention):
         })
 
 
-@registry.ATTENTION_MODULE.register("REWEIGHTING_RANDOM")
-class AttentionRWR(BaseAttention):
-    """
-    Modified version of reweighting with random prototypes
-    """
-    def __init__(self, *args):
-        super(AttentionRWR, self).__init__(*args)
-
-        self.pooled_vectors = None
-
-    def forward(self, features):
-        query_features = features['query' + self.input_name]
-        support_features = features['support' + self.input_name]
-        support_targets = features['support_targets']
-
-        N_s, B, C, _, _ = support_features[0].shape
-        support_pooled = [
-            feat[:, 0].mean(dim=[-1, -2]).reshape(N_s * C, 1, 1, 1)
-            for feat in support_features
-        ]
-
-        query_features = apply_tensor_list(query_features, 'flatten', 1, 2)
-        support_attended_query = support_features
-        query_attended_support = [
-            F.conv2d(feat,
-                     torch.randn_like(support_pooled[level]),
-                     groups=C * N_s).reshape(B, N_s, C, feat.shape[-2],
-                                             feat.shape[-1])
-            for level, feat in enumerate(query_features)
-        ]
-
-        self.pooled_vectors = support_pooled
-        self.support_target = support_targets
-
-        features.update({
-            'query' + self.output_name: query_attended_support,
-            'support' + self.output_name: support_attended_query
-        })
-
 
 @registry.ATTENTION_MODULE.register("SELF_ATTENTION")
 class AttentionSelf(BaseAttention):

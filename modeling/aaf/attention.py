@@ -167,6 +167,112 @@ class AttentionRWB(BaseAttention):
         })
 
 
+@registry.ATTENTION_MODULE.register("REWEIGHTING_SMALL_SCALE")
+class AttentionRWSS(BaseAttention):
+
+    def __init__(self, *args):
+        super(AttentionRWSS, self).__init__(*args)
+
+        self.pooled_vectors = None
+
+    def forward(self, features):
+
+        query_features = features['query' + self.input_name]
+        support_features = features['support' + self.input_name]
+        support_targets = features['support_targets']
+
+        N_s, B, C, _, _ = support_features[0].shape
+
+        K = self.cfg.FEWSHOT.K_SHOT
+
+        N_way = N_s // K
+        support_pooled = [
+            # feat.permute(1, 0, 2, 3, 4).max(-1)[0].max(-1)[0].reshape(
+            #     N_s * B * C, 1, 1, 1)
+            # feat.permute(1,0,2,3,4).max(-1)[0].max(-1)[0].reshape(B, N_s, C, 1, 1)
+            feat.permute(1, 0, 2, 3,
+                         4).mean(dim=[-1, -2],
+                                 keepdim=True)  #.reshape(N_s * B * C, 1, 1, 1)
+            for feat in support_features
+        ]
+        print(len(support_pooled))
+        support_pooled = [support_pooled[0]] * 3
+
+        # query_features = apply_tensor_list(query_features, 'flatten', 0, 2)
+        # # when using batched rw vectors
+        # query_features = apply_tensor_list(query_features, 'unsqueeze', 0)
+        support_attended_query = support_features
+        query_attended_support = [
+            # F.conv2d(feat, support_pooled[level],
+            #          groups=C * N_s * B).reshape(B, N_way, K, C, feat.shape[-2],
+            #                                        feat.shape[-1]).mean(dim=2)
+            (feat * F.softmax(support_pooled[level], dim=2)
+             ).reshape(B, N_way, K, C, feat.shape[-2],
+                       feat.shape[-1]).mean(dim=2)
+            for level, feat in enumerate(query_features)
+        ]
+
+        self.pooled_vectors = support_pooled
+        self.support_target = support_targets
+        self.query_attended_features = query_attended_support[:3]
+        features.update({
+            'query' + self.output_name: query_attended_support,
+            'support' + self.output_name: support_attended_query
+        })
+
+
+@registry.ATTENTION_MODULE.register("REWEIGHTING_SCALE_MATCHING")
+class AttentionRWSM(BaseAttention):
+    def __init__(self, *args):
+        super(AttentionRWSM, self).__init__(*args)
+
+        self.pooled_vectors = None
+
+    def forward(self, features):
+
+        query_features = features['query' + self.input_name]
+        support_features = features['support' + self.input_name]
+        support_targets = features['support_targets']
+
+        N_s, B, C, _, _ = support_features[0].shape
+
+        K = self.cfg.FEWSHOT.K_SHOT
+
+        N_way = N_s // K
+        support_pooled = [
+            # feat.permute(1, 0, 2, 3, 4).max(-1)[0].max(-1)[0].reshape(
+            #     N_s * B * C, 1, 1, 1)
+            # feat.permute(1,0,2,3,4).max(-1)[0].max(-1)[0].reshape(B, N_s, C, 1, 1)
+            feat.permute(1, 0, 2, 3,
+                         4).mean(dim=[-1, -2],
+                                 keepdim=True)  #.reshape(N_s * B * C, 1, 1, 1)
+            for feat in support_features
+        ]
+
+
+
+        # query_features = apply_tensor_list(query_features, 'flatten', 0, 2)
+        # # when using batched rw vectors
+        # query_features = apply_tensor_list(query_features, 'unsqueeze', 0)
+        support_attended_query = support_features
+        query_attended_support = [
+            # F.conv2d(feat, support_pooled[level],
+            #          groups=C * N_s * B).reshape(B, N_way, K, C, feat.shape[-2],
+            #                                        feat.shape[-1]).mean(dim=2)
+            (feat * F.softmax(support_pooled[level], dim=2)
+             ).reshape(B, N_way, K, C, feat.shape[-2],
+                       feat.shape[-1]).mean(dim=2)
+            for level, feat in enumerate(query_features)
+        ]
+
+        self.pooled_vectors = support_pooled
+        self.support_target = support_targets
+        self.query_attended_features = query_attended_support
+        features.update({
+            'query' + self.output_name: query_attended_support,
+            'support' + self.output_name: support_attended_query
+        })
+
 
 @registry.ATTENTION_MODULE.register("SELF_ATTENTION")
 class AttentionSelf(BaseAttention):

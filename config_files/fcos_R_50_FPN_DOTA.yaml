@@ -68,20 +68,20 @@ FEWSHOT:
   SPLIT_METHOD: 'deterministic'
   K_SHOT: 1
   EPISODES: 1000
-  SUPPORT_EXTRACTOR: 'same'
+  SUPPORT_EXTRACTOR: 'same' # 'multiscale_distinct'
   SUPPORT:
-    CROP_SIZE: (128,128)
+    CROP_SIZE: (512,512)
     CROP_MODE: 'KEEP_SIZE'
     CROP_MARGIN: 0.5
   SAME_SUPPORT_IN_BATCH: True # do not put to False while FineTuning
   AAF:
-    # CFG: '/home/pierre/Documents/PHD/aaf_framework/config_files/aaf_module/feature_reweighting.yaml'
-    CFG: '/home/pierre/Documents/PHD/aaf_framework/config_files/aaf_module/dana.yaml'
+    CFG: '/home/pierre/Documents/PHD/aaf_framework/config_files/aaf_module/feature_reweighting.yaml'
+    # CFG: '/home/pierre/Documents/PHD/aaf_framework/config_files/aaf_module/dana.yaml'
     # CFG: '/home/pierre/Documents/PHD/aaf_framework/config_files/aaf_module/meta_faster_rcnn.yaml'
     # CFG: '/home/pierre/Documents/PHD/aaf_framework/config_files/aaf_module/dynamic.yaml'
     # CFG: '/home/pierre/Documents/PHD/aaf_framework/config_files/aaf_module/self_adapt.yaml'
 # OUTPUT_DIR: './Experiments_aaf_framework'
-OUTPUT_DIR: '/home/pierre/Documents/PHD/Experiments_FSFCOS/DOTA/DANA_4'
+OUTPUT_DIR: '/home/pierre/Documents/PHD/Experiments_FSFCOS/DOTA/FRW_S0'
 RANDOM:
   DISABLED: False
 LOGGING:

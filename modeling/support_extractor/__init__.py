@@ -1,2 +1,1 @@
-from .reweighting_module import ReweightingModule
-
+from .reweighting_module import ReweightingModule, MSReweightingModule

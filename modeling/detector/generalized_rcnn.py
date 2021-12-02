@@ -11,7 +11,7 @@ from fcos_core.structures.image_list import to_image_list
 from fcos_core.modeling.backbone import build_backbone
 from ..rpn.rpn import build_rpn
 from fcos_core.modeling.roi_heads.roi_heads import build_roi_heads
-from ..support_extractor import ReweightingModule
+from ..support_extractor import ReweightingModule, MSReweightingModule
 from ...utils.visualization import plot_img_only
 
 
@@ -73,11 +73,13 @@ class FSGeneralizedRCNN(GeneralizedRCNN):
     """
     def __init__(self, cfg):
         super(FSGeneralizedRCNN, self).__init__(cfg)
-
+        device = torch.device(cfg.MODEL.DEVICE)
         if cfg.FEWSHOT.SUPPORT_EXTRACTOR == 'same':
             self.support_features_extractor = self.backbone
+        elif cfg.FEWSHOT.SUPPORT_EXTRACTOR == 'multiscale_distinct':
+            self.support_features_extractor = MSReweightingModule().to(device)
         else:
-            self.support_features_extractor = ReweightingModule()
+            self.support_features_extractor = ReweightingModule().to(device)
 
 
     def compute_support_features(self, support_loader, device):

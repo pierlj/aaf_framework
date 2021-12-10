@@ -1,3 +1,4 @@
+import math
 import torch
 from torch import nn
 import torch.nn.functional as F
@@ -195,7 +196,7 @@ class AttentionRWSS(BaseAttention):
                                  keepdim=True)  #.reshape(N_s * B * C, 1, 1, 1)
             for feat in support_features
         ]
-        print(len(support_pooled))
+
         support_pooled = [support_pooled[0]] * 3
 
         # query_features = apply_tensor_list(query_features, 'flatten', 0, 2)
@@ -209,7 +210,7 @@ class AttentionRWSS(BaseAttention):
             (feat * F.softmax(support_pooled[level], dim=2)
              ).reshape(B, N_way, K, C, feat.shape[-2],
                        feat.shape[-1]).mean(dim=2)
-            for level, feat in enumerate(query_features)
+            for level, feat in enumerate(query_features[:3])
         ]
 
         self.pooled_vectors = support_pooled
@@ -239,18 +240,39 @@ class AttentionRWSM(BaseAttention):
         K = self.cfg.FEWSHOT.K_SHOT
 
         N_way = N_s // K
-        support_pooled = [
-            # feat.permute(1, 0, 2, 3, 4).max(-1)[0].max(-1)[0].reshape(
-            #     N_s * B * C, 1, 1, 1)
-            # feat.permute(1,0,2,3,4).max(-1)[0].max(-1)[0].reshape(B, N_s, C, 1, 1)
-            feat.permute(1, 0, 2, 3,
-                         4).mean(dim=[-1, -2],
-                                 keepdim=True)  #.reshape(N_s * B * C, 1, 1, 1)
-            for feat in support_features
-        ]
+        # support_pooled = [
+        #     # feat.permute(1, 0, 2, 3, 4).max(-1)[0].max(-1)[0].reshape(
+        #     #     N_s * B * C, 1, 1, 1)
+        #     # feat.permute(1,0,2,3,4).max(-1)[0].max(-1)[0].reshape(B, N_s, C, 1, 1)
+        #     feat.permute(1, 0, 2, 3,
+        #                  4).mean(dim=[-1, -2],
+        #                          keepdim=True)  #.reshape(N_s * B * C, 1, 1, 1)
+        #     for feat in support_features
+        # ]
 
+        support_pooled = []
+        for level, feat in enumerate(support_features):
+            N_S, B, C, H, W = feat.shape
+            feat = feat.permute(1, 0, 2, 3, 4).reshape(B * N_s, C, H, W)
+            targets = [t.bbox for t in support_targets] * B
+            scale = 1/8 * 2 ** (- level)
+            pooled_feat = torchvision.ops.roi_align(feat, targets, output_size=3, spatial_scale=scale)
+            support_pooled.append(pooled_feat.mean(dim=[-1,-2], keepdim=True).reshape(B, N_s, C, 1, 1))
 
+        def match_level(box_area):
+            crop_area = self.cfg.FEWSHOT.SUPPORT.CROP_SIZE[0] ** 2
+            # crop_area = crop_area.item()
+            L = self.cfg.FEWSHOT.FEATURE_LEVEL - 1
+            return min(L, max(0, math.floor(math.log(box_area / crop_area) + L)))
 
+        target_labels = [match_level(t.area()) for t in support_targets]
+        # print(target_labels)
+        L = self.cfg.FEWSHOT.FEATURE_LEVEL
+        level_masks = F.one_hot(torch.tensor(target_labels), num_classes=L).T.view(L, 1, N_s, 1, 1, 1).cuda()
+        # for idx, level in enumerate(target_labels):
+        #     for l in range(5):
+        #         if level != l:
+        #             support_pooled[l][:, idx, :] = 0
         # query_features = apply_tensor_list(query_features, 'flatten', 0, 2)
         # # when using batched rw vectors
         # query_features = apply_tensor_list(query_features, 'unsqueeze', 0)
@@ -259,12 +281,12 @@ class AttentionRWSM(BaseAttention):
             # F.conv2d(feat, support_pooled[level],
             #          groups=C * N_s * B).reshape(B, N_way, K, C, feat.shape[-2],
             #                                        feat.shape[-1]).mean(dim=2)
-            (feat * F.softmax(support_pooled[level], dim=2)
+            # (feat * F.softmax(support_pooled[level], dim=2)# * mask
+            (feat * support_pooled[level]# * mask
              ).reshape(B, N_way, K, C, feat.shape[-2],
                        feat.shape[-1]).mean(dim=2)
-            for level, feat in enumerate(query_features)
+            for level, (feat, mask) in enumerate(zip(query_features, level_masks))
         ]
-
         self.pooled_vectors = support_pooled
         self.support_target = support_targets
         self.query_attended_features = query_attended_support

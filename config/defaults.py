@@ -401,6 +401,7 @@ _C.FEWSHOT.SUPPORT_EXTRACTOR = 'same'
 # When True: K example per class are sampled for an iteration
 # When False: K*BS examples per class (K per image).
 _C.FEWSHOT.SAME_SUPPORT_IN_BATCH = False
+_C.FEWSHOT.FEATURE_LEVEL = 5
 
 #------------------------------------------------------------------------------#
 # Support computation

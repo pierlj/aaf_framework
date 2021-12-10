@@ -402,6 +402,8 @@ _C.FEWSHOT.SUPPORT_EXTRACTOR = 'same'
 # When False: K*BS examples per class (K per image).
 _C.FEWSHOT.SAME_SUPPORT_IN_BATCH = False
 
+_C.FEWSHOT.USE_PROTO_CLASSIFIER = False
+
 #------------------------------------------------------------------------------#
 # Support computation
 #------------------------------------------------------------------------------#

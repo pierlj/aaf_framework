@@ -96,7 +96,7 @@ class ProtoFCOSHead(torch.nn.Module):
         # initialize the bias for focal loss
         prior_prob = cfg.MODEL.FCOS.PRIOR_PROB
         bias_value = -math.log((1 - prior_prob) / prior_prob)
-        torch.nn.init.constant_(self.cls_logits.bias, bias_value)
+        # torch.nn.init.constant_(self.cls_logits.bias, bias_value)
 
         self.scales = nn.ModuleList([Scale(init_value=1.0) for _ in range(5)])
 
@@ -120,7 +120,9 @@ class ProtoFCOSHead(torch.nn.Module):
                 cls_tower = self.cls_tower(feature)
                 box_tower = self.bbox_tower(feature)
 
-                logits[current_class].append(self.cls_logits(cls_tower, prototypes[current_class][l]))
+                logits[current_class].append(self.cls_logits(cls_tower,
+                                                        prototypes[current_class][l],
+                                                        classes_episode))
                 if self.centerness_on_reg:
                     centerness[current_class].append(self.centerness(box_tower))
                 else:
@@ -139,8 +141,9 @@ class ProtoFCOSHead(torch.nn.Module):
         return logits, bbox_reg, centerness
 
     def compute_prototypes(self, support_features, classes):
-        N, B, C, _, _ = support_features[0].shape
-        prototypes = [feat.mean(dim=[-1,-2]).reshape(N // K, K, B, C)
+        N, C, _, _ = support_features[0].shape
+        K = self.aaf_module.cfg.FEWSHOT.K_SHOT
+        prototypes = [feat.mean(dim=[-1,-2]).reshape(N // K, K, C)
                             for feat in support_features]
 
         proto_dict = {c: [proto[idx] for proto in prototypes] for idx, c in enumerate(classes)}
@@ -151,22 +154,28 @@ class ProtoClassifier(torch.nn.Module):
     def __init__(self):
         super(ProtoClassifier, self).__init__()
 
-        self.average_proto = True
-        self.sigma = 0.5
+        self.average_proto = False
+        self.sigma = 0.1
 
     def forward(self, query_features, prototypes, classes):
 
-        # protos K, B, C
+        # protos K, C
         if self.average_proto:
-            protos = protos.mean(dim=0, keepdim=True)
-        feature_vectors = cls_specific_query[l]
-        feature_vectors = feature_vectors.permute(0,1,3,4,2)
-        B, K, H, W, C = feature_vectors.shape
-        feature_vectors = feature_vectors.reshape(B, -1, C)
-        protos = protos.permute(1, 0, 2)
+            prototypes = prototypes.mean(dim=0, keepdim=True)
+        feature_vectors = query_features #B, C, H, W
+        feature_vectors = feature_vectors.permute(0,2,3,1)
+        B, H, W, C = feature_vectors.shape
+        feature_vectors = feature_vectors.reshape(B, -1, C).contiguous()
+        prototypes = prototypes.repeat(B, 1, 1)
+        feature_vectors = feature_vectors / feature_vectors.norm(dim=-1,
+                                                                 keepdim=True)
+        prototypes = prototypes / prototypes.norm(dim=-1, keepdim=True)
 
-        distance_matrix = torch.cdist(protos, feature_vectors) #B, K, KHW
-        dist_closest_proto = distance_matrix.reshape(B, K, K, H*W).min(dim=1)[0].min(dim=1)[0]
+        distance_matrix = torch.cdist(
+            prototypes, feature_vectors)  #B, K or 1 , HW
+
+        K = prototypes.shape[1]
+        dist_closest_proto = distance_matrix.reshape(B, K, H*W).min(dim=1)[0]
         cls_level_logits = torch.exp(-dist_closest_proto / 2 / self.sigma)
         cls_level_logits = cls_level_logits.reshape(B, 1, H, W)
 

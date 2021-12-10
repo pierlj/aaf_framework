@@ -76,7 +76,7 @@ class AAFModule(nn.Module):
         # print(labels)
         for feature in features['output_features']:
             shape = feature.shape
-            feature = feature.view(shape[0], n_ways, *shape[-3:])
+            feature = feature.reshape(shape[0], n_ways, *shape[-3:])
             for id_class, c in enumerate(labels):
                 if c not in query_features_dict:
                     query_features_dict[c] = []

@@ -222,10 +222,10 @@ class AttentionRWSS(BaseAttention):
         })
 
 
-@registry.ATTENTION_MODULE.register("REWEIGHTING_SCALE_MATCHING")
-class AttentionRWSM(BaseAttention):
+@registry.ATTENTION_MODULE.register("REWEIGHTING_WO_SOFT")
+class AttentionRWWS(BaseAttention):
     def __init__(self, *args):
-        super(AttentionRWSM, self).__init__(*args)
+        super(AttentionRWWS, self).__init__(*args)
 
         self.pooled_vectors = None
 

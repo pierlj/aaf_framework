@@ -34,6 +34,8 @@ class GeneralizedRCNN(nn.Module):
 
         self.cfg = cfg
 
+        self.query_grad = []
+
     def forward(self, images, targets=None, classes=None, support=None):
         """
         Arguments:
@@ -52,7 +54,11 @@ class GeneralizedRCNN(nn.Module):
         images = to_image_list(images)
 
         features = self.backbone(images.tensors)[:self.cfg.FEWSHOT.FEATURE_LEVEL]
-        proposals, proposal_losses = self.rpn(images, features, targets, classes=classes, support=support)
+        for level, feat in enumerate(features):
+            feat.register_hook(lambda grad: self.q_gradient_hook(grad, level))
+
+        return self.rpn(images, features, targets, classes=classes, support=support)
+
         if self.roi_heads:
             x, result, detector_losses = self.roi_heads(features, proposals, targets)
         else:
@@ -69,6 +75,9 @@ class GeneralizedRCNN(nn.Module):
 
         return result
 
+    def q_gradient_hook(self, grad, level):
+        self.query_grad.append(grad)
+
 
 class FSGeneralizedRCNN(GeneralizedRCNN):
     """
@@ -84,6 +93,8 @@ class FSGeneralizedRCNN(GeneralizedRCNN):
         else:
             self.support_features_extractor = ReweightingModule().to(device)
 
+        # self.support_grad = [None for _ in range(cfg.FEWSHOT.FEATURE_LEVEL)]
+        self.support_grad = []
 
     def compute_support_features(self, support_loader, device):
         support_features = []
@@ -106,6 +117,12 @@ class FSGeneralizedRCNN(GeneralizedRCNN):
         support_features = [
             torch.cat([features[l] for features in support_features])
                 for l in range(len(support_features[0]))
-        ]
+        ][:self.cfg.FEWSHOT.FEATURE_LEVEL]
+
+        for level, feat in enumerate(support_features):
+            feat.register_hook(self.s_gradient_hook)
 
         return support_features, support_targets
+
+    def s_gradient_hook(self, grad):
+        self.support_grad.append(grad)

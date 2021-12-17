@@ -179,10 +179,12 @@ class FSFCOSModule(torch.nn.Module):
         self.classes = classes
 
         if self.training:
-            return self._forward_train(
-                locations, box_cls,
-                box_regression,
-                centerness, targets
+            return (self._forward_test(
+                locations, box_cls, box_regression,
+                centerness, images.image_sizes
+                ), 
+                box_cls, box_regression,
+                centerness
             )
         else:
             return self._forward_test(

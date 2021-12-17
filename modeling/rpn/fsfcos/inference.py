@@ -1,4 +1,5 @@
 import torch
+import math
 
 from fcos_core.modeling.rpn.inference import RPNPostProcessor
 from fcos_core.modeling.rpn.utils import permute_and_flatten
@@ -58,6 +59,7 @@ class FCOSPostProcessor(torch.nn.Module):
         """
         N, C, H, W = box_cls.shape
 
+
         # put in the same format as locations
         box_cls = box_cls.view(N, C, H, W).permute(0, 2, 3, 1)
         box_cls = box_cls.reshape(N, -1, C).sigmoid()
@@ -85,7 +87,6 @@ class FCOSPostProcessor(torch.nn.Module):
             per_class = torch.Tensor(classes).to(per_box_loc)[
                 per_candidate_nonzeros[:, 1].long()].long()
 
-
             per_box_regression = box_regression[i]
             per_box_regression = per_box_regression[per_box_loc,
                                         per_candidate_nonzeros[:,1]]
@@ -106,11 +107,13 @@ class FCOSPostProcessor(torch.nn.Module):
                 per_locations[:, 0] + per_box_regression[:, 2],
                 per_locations[:, 1] + per_box_regression[:, 3],
             ], dim=1)
-
             h, w = image_sizes[i]
             boxlist = BoxList(detections, (int(w), int(h)), mode="xyxy")
             boxlist.add_field("labels", per_class)
             boxlist.add_field("scores", torch.sqrt(per_box_cls))
+            boxlist.add_field("selected_pos", per_candidate_nonzeros)
+            level = int(math.log(64/H, 2))
+            boxlist.add_field("level", torch.ones_like(per_class) * level)
             boxlist = boxlist.clip_to_image(remove_empty=False)
             boxlist = remove_small_boxes(boxlist, self.min_size)
             results.append(boxlist)

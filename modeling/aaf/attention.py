@@ -257,7 +257,10 @@ class AttentionRWWS(BaseAttention):
             targets = [t.bbox for t in support_targets] * B
             scale = 1/8 * 2 ** (- level)
             pooled_feat = torchvision.ops.roi_align(feat, targets, output_size=3, spatial_scale=scale)
-            support_pooled.append(pooled_feat.mean(dim=[-1,-2], keepdim=True).reshape(B, N_s, C, 1, 1))
+            # support_pooled.append(pooled_feat.mean(dim=[-1,-2], keepdim=True).reshape(B, N_s, C, 1, 1))
+            support_pooled.append(
+                pooled_feat.max(dim=-1, keepdim=True)[0].max(
+                                dim=-2, keepdim=True)[0].reshape(B, N_s, C, 1, 1))
 
         def match_level(box_area):
             crop_area = self.cfg.FEWSHOT.SUPPORT.CROP_SIZE[0] ** 2

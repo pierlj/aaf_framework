@@ -104,7 +104,7 @@ class FSGeneralizedRCNN(GeneralizedRCNN):
             support_targets = support_targets + targets
 
         support_features = [
-            torch.cat([features[l] for features in support_features])
+            torch.cat([features[l] for features in support_features]).detach()
                 for l in range(len(support_features[0]))
         ]
 

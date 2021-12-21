@@ -3,6 +3,8 @@ import torch
 import torchvision
 import os
 import json
+import numpy as np
+from collections import defaultdict
 
 from fcos_core.structures.bounding_box import BoxList
 from fcos_core.structures.segmentation_mask import SegmentationMask
@@ -123,6 +125,8 @@ class COCODataset(COCODataset_):
         self.class_table = {self.json_category_id_to_contiguous_id[k]: list(set(class_idx_list))
                             for k, class_idx_list in self.coco.catToImgs.items()}
 
+        self.filter_class_table()
+
         self.image_ids_to_ids = {img_id: dataset_id for dataset_id, img_id in enumerate(self.ids)}
 
 
@@ -145,28 +149,39 @@ class COCODataset(COCODataset_):
 
         return img, target, idx
 
-    # def init_classe_table(self, path):
-    #     """
-    #     Create a class table with indices of images with object of each class.
-    #     It allows faster sampling than with COCO API but it allows also to filter
-    #     out images without annotations.
+    def filter_class_table(self):
+        AREA_TH = 0
+        inf = np.inf
 
-    #     Useless in fact classe table are available from coco api quite easily
-    #     """
-    #     class_table = {}
+        imgToAnns = {}
+        catToImgs = defaultdict(list)
 
-    #     for annot in self.coco.anns.values():
-    #         if has_valid_annotation([annot]):
-    #             c = self.json_category_id_to_contiguous_id[int(annot['category_id'])]
-    #             if not c in class_table.keys():
-    #                 class_table[c] = [annot['image_id']]
-    #             elif not annot['image_id'] in class_table[c]:
-    #                 class_table[c].append(annot['image_id'])
+        for img_id in self.coco.imgToAnns:
+            img_annot = self.coco.getAnnIds(imgIds=[img_id],
+                                            areaRng=[AREA_TH, inf])
+            if img_annot != []:
+                imgToAnns[img_id] = [
+                    self.coco.anns[annot_id] for annot_id in img_annot
+                ]
+        self.coco.imgToAnns = imgToAnns
 
-    #     with open(path, 'w') as f:
-    #         json.dump(class_table, f)
+        for k, img_list in self.class_table.items():
+            self.class_table[k] = [
+                img_id for img_id in img_list if self.coco.getAnnIds(
+                    imgIds=[img_id],
+                    catIds=[self.contiguous_category_id_to_json_id[k]],
+                    areaRng=[AREA_TH, inf]) != []
+            ]
+            # catToImgs[self.contiguous_category_id_to_json_id[k]] = [img_id]
+        self.coco.anns = {
+            annot_id: self.coco.anns[annot_id]
+            for annot_id in self.coco.getAnnIds(areaRng=[AREA_TH, inf])
+        }
+        for ann in self.coco.dataset['annotations']:
+            catToImgs[ann['category_id']].append(ann['image_id'])
 
-    #     return class_table
+        self.coco.catToImgs = catToImgs
+
 
 class SupportCOCODataset(COCODataset):
     """
@@ -181,10 +196,11 @@ class SupportCOCODataset(COCODataset):
         del kwargs['cfg']
         super(SupportCOCODataset, self).__init__(*args, **kwargs)
 
-
         self.crop = self.cfg.FEWSHOT.SUPPORT.CROP
         self.fixed_size = self.cfg.FEWSHOT.SUPPORT.CROP_SIZE
         self.margin = self.cfg.FEWSHOT.SUPPORT.CROP_MARGIN
+
+        self.filter_class_table()
 
         self.support_cropper = CroppingModule(self.cfg,
                                               self.cfg.FEWSHOT.SUPPORT.CROP_MODE)
@@ -197,8 +213,8 @@ class SupportCOCODataset(COCODataset):
     def __getitem__(self, item_idx):
         idx, class_selected = item_idx
         self.selected_classes = torch.Tensor([class_selected])
-        img, target, idx = super(SupportCOCODataset, self).__getitem__(idx)
 
+        img, target, idx = super(SupportCOCODataset, self).__getitem__(idx)
         # Sample only 1 example per image
         labels = target.get_field('labels')
         bbox = target.bbox
@@ -219,6 +235,7 @@ class SupportCOCODataset(COCODataset):
             # plot_single_img_boxes(img, target, self.cfg)
 
         return img, target, idx
+
 
 
 class FinetuneCOCODataset(COCODataset):

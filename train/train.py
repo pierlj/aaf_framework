@@ -67,7 +67,7 @@ class Trainer():
 
         # by default is_finetuning is false it will be set to true when it starts
         # if only finetuning then the number of base training is 0 but finetuning will
-        # be set later anyway. 
+        # be set later anyway.
         self.is_finetuning = False
 
         # Main data object for base training
@@ -241,6 +241,9 @@ class Trainer():
                 losses.backward()
                 # torch.nn.utils.clip_grad_norm_(self.model.parameters(), 5.0) # use only for MFRCN to reduce unstability
 
+                # print(self.model.support_features_extractor.body.layer4[2].conv3.
+                #       weight.grad)
+
                 self.optimizer.step()
                 self.scheduler.step()
 
@@ -279,7 +282,7 @@ class Trainer():
                     self.eval_fs(iteration)
 
                 # Model checkpointing
-                if iteration % self.checkpoint_period == 0:
+                if iteration % self.checkpoint_period == 0 or iteration == 1:
                     if self.is_finetuning:
                         model_name = "model_{:07d}_{}_shot".format(iteration, self.cfg.FEWSHOT.K_SHOT)
                     else:
@@ -407,4 +410,6 @@ class Trainer():
         self.scheduler.milestones = [self.max_iter + s for s in self.cfg.FINETUNE.STEPS]
 
         # Update cfg
-        self.cfg.merge_from_list(['FEWSHOT.K_SHOT', k_shot])
+        self.cfg.merge_from_list(
+            ['FEWSHOT.K_SHOT', k_shot, 
+            'SOLVER.IMS_PER_BATCH', 8])

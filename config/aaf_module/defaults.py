@@ -5,7 +5,7 @@ from yacs.config import CfgNode as CN
 _C = CN()
 # Run Alignment before Attention when True
 _C.ALIGN_FIRST = True
-_C.OUT_CH = 256
+_C.OUT_CH = 512
 
 _C.ALIGNMENT = CN()
 # Available options depend on the content modeling/rpn/fsfcos/aaf/alignment.py

@@ -1,6 +1,7 @@
 import logging
 import torch
 import numpy as np
+from torchvision.transforms.functional import pad
 
 def apply_tensor_list(tensor_list, method_name, *args, **kwargs):
     # Helper function to apply tensor methods and slicing on List[Tensor]
@@ -70,3 +71,21 @@ def random_choice(len_tensor, n, generator=None):
             np.random.choice(np.arange(len_tensor), pad))
         keep = torch.cat([keep, keep_pad])
     return keep
+
+
+def pad_to_size(img, size):
+    target_size = list(size).copy()
+    h, w = img.shape[-2:]
+    assert size[0] >= h and size[
+        1] >= w, 'Pad size must be greater than image size'
+    size = min(3 * h - 2, size[0]), min(3 * w - 2, size[1])
+    t = (size[0] - h) // 2
+    b = (size[0] - h) // 2 + (size[0] - h) % 2
+    l = (size[1] - w) // 2
+    r = (size[1] - w) // 2 + (size[1] - w) % 2
+    padded_img = pad(img, (l, t, r, b), padding_mode='reflect')
+    if padded_img.shape[-2] == target_size[0] and padded_img.shape[
+            -1] == target_size[1]:
+        return padded_img
+    else:
+        return pad_to_size(padded_img, target_size)

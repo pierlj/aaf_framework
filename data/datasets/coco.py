@@ -117,7 +117,7 @@ class COCODataset(COCODataset_):
     It samples classes from selected_classes to allow episodic training with 
     subsets of classes only.
     """
-    def __init__(self, *args, selected_classes=None, is_support=None, **kwargs):
+    def __init__(self, *args, selected_classes=None, is_support=None, filter_obj=True, **kwargs):
         super(COCODataset, self).__init__(*args, **kwargs)
         self.selected_classes = selected_classes
         self.is_support = is_support
@@ -125,7 +125,8 @@ class COCODataset(COCODataset_):
         self.class_table = {self.json_category_id_to_contiguous_id[k]: list(set(class_idx_list))
                             for k, class_idx_list in self.coco.catToImgs.items()}
 
-        self.filter_class_table()
+        if filter_obj:
+            self.filter_class_table()
 
         self.image_ids_to_ids = {img_id: dataset_id for dataset_id, img_id in enumerate(self.ids)}
 
@@ -194,6 +195,7 @@ class SupportCOCODataset(COCODataset):
     def __init__(self, *args, rng=None, **kwargs):
         self.cfg = kwargs['cfg']
         del kwargs['cfg']
+        # kwargs['filter_obj'] = False
         super(SupportCOCODataset, self).__init__(*args, **kwargs)
 
         self.crop = self.cfg.FEWSHOT.SUPPORT.CROP

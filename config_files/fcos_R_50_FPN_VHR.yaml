@@ -14,7 +14,7 @@ MODEL:
   FCOS:
     IOU_LOSS_TYPE: "giou"
     LOSS_ALPHA: 0.25
-    INFERENCE_TH: 0.05
+    INFERENCE_TH: 0.1
     NUM_CLASSES: 20
 DATASETS:
   TRAIN: ("dior_train",)
@@ -39,16 +39,16 @@ INPUT:
   TO_BGR255: True
 DATALOADER:
   SIZE_DIVISIBILITY: 32
-  NUM_WORKERS: 2
+  NUM_WORKERS: 0
 SOLVER:
-  BASE_LR: 0.001
+  BASE_LR: 0.0001
   WEIGHT_DECAY: 0.0001
   STEPS: (150000, 2000000)
   MAX_ITER: 90000
-  IMS_PER_BATCH: 16
+  IMS_PER_BATCH: 8
   WARMUP_METHOD: "constant"
   # WARMUP_FACTOR: 0.1
-  CHECKPOINT_PERIOD: 1000
+  CHECKPOINT_PERIOD: 5000
   CONTINUE_TRAINING: False # True
 TEST:
   IMS_PER_BATCH: 8
@@ -67,13 +67,12 @@ FEWSHOT:
   N_QUERY_TEST: 100
   SPLIT_METHOD: 'deterministic'
   K_SHOT: 1
-  EPISODES: 1500
+  EPISODES: 1000
   SUPPORT_EXTRACTOR: 'same' # 'same' / 'multiscale_distinct' / 'siamese'
   SUPPORT:
-    CROP_SIZE: (128,128)
-    CROP_MODE: 'REFLECT'
-    CROP_MARGIN: 0.2
-    CROP_CENTER: True
+    CROP_SIZE: (512,512)
+    CROP_MODE: 'KEEP_SIZE'
+    CROP_MARGIN: 0.5
   FEATURE_LEVEL: 3
   SAME_SUPPORT_IN_BATCH: True # do not put to False while FineTuning
   AAF:
@@ -83,7 +82,7 @@ FEWSHOT:
     # CFG: '/home/pierre/Documents/PHD/aaf_framework/config_files/aaf_module/dynamic.yaml'
     # CFG: '/home/pierre/Documents/PHD/aaf_framework/config_files/aaf_module/self_adapt.yaml'
 # OUTPUT_DIR: './Experiments_aaf_framework'
-OUTPUT_DIR: '/home/pierre/Documents/PHD/Experiments_FSFCOS/DIOR/FRW_MIRROR'
+OUTPUT_DIR: '/home/pierre/Documents/PHD/Experiments_FSFCOS/DOTA/FRW_NOSOFT_NO_POOL'
 RANDOM:
   DISABLED: False
 LOGGING:
@@ -98,10 +97,4 @@ FINETUNE:
   SHOTS: [1,3,5,10]
   MIXED: True
   STEPS: (10000,)
-AUGMENT:
-  BRIGHTNESS: 0.4
-  CONTRAST: 0.4
-  SATURATION: 0.4
-  HUE: 0.15
-  FLIP_PROBA: 0.5
 

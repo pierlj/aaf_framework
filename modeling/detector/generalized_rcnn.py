@@ -5,6 +5,7 @@ Implements the Generalized R-CNN framework
 
 import torch
 from torch import nn
+from copy import deepcopy
 
 from fcos_core.structures.image_list import to_image_list
 
@@ -81,6 +82,8 @@ class FSGeneralizedRCNN(GeneralizedRCNN):
             self.support_features_extractor = self.backbone
         elif cfg.FEWSHOT.SUPPORT_EXTRACTOR == 'multiscale_distinct':
             self.support_features_extractor = MSReweightingModule().to(device)
+        elif cfg.FEWSHOT.SUPPORT_EXTRACTOR == 'siamese':
+            self.support_features_extractor = build_backbone(cfg)
         else:
             self.support_features_extractor = ReweightingModule().to(device)
 
@@ -104,7 +107,7 @@ class FSGeneralizedRCNN(GeneralizedRCNN):
             support_targets = support_targets + targets
 
         support_features = [
-            torch.cat([features[l] for features in support_features]).detach()
+            torch.cat([features[l] for features in support_features])
                 for l in range(len(support_features[0]))
         ]
 

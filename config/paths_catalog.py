@@ -137,33 +137,70 @@ class DatasetCatalog(object):
             "/home/pierre/Documents/PHD/Datasets/VOC_2007/VOCdevkit/VOC2007",
             "split": "test"
             # PASCAL VOC2012 doesn't made the test annotations available, so there's no json annotation
+        },
+        "vhr_train": {
+            "img_dir":
+            "/home/pierre/Documents/PHD/Datasets/VHR_10/coco_format/train",
+            "ann_file":
+            "/home/pierre/Documents/PHD/Datasets/VHR_10/coco_format/annotations/instances_train.json"
+        },
+        "vhr_val": {
+            "img_dir":
+            "/home/pierre/Documents/PHD/Datasets/VHR_10/coco_format/test",
+            "ann_file":
+            "/home/pierre/Documents/PHD/Datasets/VHR_10/coco_format/annotations/instances_test.json"
+        },
+        "vhr_test": {
+            "img_dir":
+            "/home/pierre/Documents/PHD/Datasets/VHR_10/coco_format/test",
+            "ann_file":
+            "/home/pierre/Documents/PHD/Datasets/VHR_10/coco_format/annotations/instances_test.json"
+        },
+        "dior_train": {
+            "img_dir":
+            "/home/pierre/Documents/PHD/Datasets/DIOR/coco_format/train",
+            "ann_file":
+            "/home/pierre/Documents/PHD/Datasets/DIOR/coco_format/annotations/instances_train.json"
+        },
+        "dior_val": {
+            "img_dir":
+            "/home/pierre/Documents/PHD/Datasets/DIOR/coco_format/val",
+            "ann_file":
+            "/home/pierre/Documents/PHD/Datasets/DIOR/coco_format/annotations/instances_val.json"
+        },
+        "dior_test": {
+            "data_dir":
+            "/home/pierre/Documents/PHD/Datasets/DIOR/coco_format/test",
+            "ann_file":
+            "/home/pierre/Documents/PHD/Datasets/DIOR/coco_format/annotations/instances_test.json"
         }
     }
 
     @staticmethod
     def get(name):
-        if 'coco' in name or 'dota' in name or 'pascalv' in name:
-            data_dir = DatasetCatalog.DATA_DIR
-            attrs = DatasetCatalog.DATASETS[name]
-            args = dict(
-                root=os.path.join(data_dir, attrs["img_dir"]),
-                ann_file=os.path.join(data_dir, attrs["ann_file"]),
-            )
-            return dict(
-                factory="COCODataset",
-                args=args,
-            )
-        elif "voc" in name:
-            data_dir = DatasetCatalog.DATA_DIR
-            attrs = DatasetCatalog.DATASETS[name]
-            args = dict(
-                data_dir=os.path.join(data_dir, attrs["data_dir"]),
-                split=attrs["split"],
-            )
-            return dict(
-                factory="PascalVOCDataset",
-                args=args,
-            )
+        # Changed from original implementation to use only coco format
+        # if 'coco' in name or 'dota' in name or 'pascalv' in name:
+        data_dir = DatasetCatalog.DATA_DIR
+        attrs = DatasetCatalog.DATASETS[name]
+        args = dict(
+            root=os.path.join(data_dir, attrs["img_dir"]),
+            ann_file=os.path.join(data_dir, attrs["ann_file"]),
+        )
+        return dict(
+            factory="COCODataset",
+            args=args,
+        )
+        # elif "voc" in name:
+        #     data_dir = DatasetCatalog.DATA_DIR
+        #     attrs = DatasetCatalog.DATASETS[name]
+        #     args = dict(
+        #         data_dir=os.path.join(data_dir, attrs["data_dir"]),
+        #         split=attrs["split"],
+        #     )
+        #     return dict(
+        #         factory="PascalVOCDataset",
+        #         args=args,
+        #     )
         raise RuntimeError("Dataset not available: {}".format(name))
 
 

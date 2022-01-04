@@ -1,7 +1,7 @@
 MODEL:
   META_ARCHITECTURE: "FSGeneralizedRCNN"
-  # WEIGHT: "catalog://ImageNetPretrained/MSRA/R-50"
-  WEIGHT: "./Experiments_FSFCOS/Experiments_paper/MFRCN/model_final.pth"
+  WEIGHT: "catalog://ImageNetPretrained/MSRA/R-50"
+  # WEIGHT: "./Experiments_FSFCOS/Experiments_paper/MFRCN/model_final.pth"
   RPN_ONLY: True
   FCOS_ON: True
   BACKBONE:
@@ -59,39 +59,40 @@ TEST:
     SCALE_H_FLIP: True
 FEWSHOT:
   ENABLED: True
-  N_WAYS_TRAIN: 5
-  N_WAYS_TEST: 5
-  N_CLASSES_TEST: 5
+  N_WAYS_TRAIN: 3
+  N_WAYS_TEST: 3
+  N_CLASSES_TEST: 3
   N_QUERY_TRAIN: 100
   N_QUERY_TEST: 100
   SPLIT_METHOD: 'deterministic'
   K_SHOT: 1
-  EPISODES: 0
-  SUPPORT_EXTRACTOR: 'same'
+  EPISODES: 1000
+  SUPPORT_EXTRACTOR: 'siamese'
   SUPPORT:
     CROP_SIZE: (128,128)
-    CROP_MODE: 'KEEP_SIZE'
-    CROP_MARGIN: 0.1
+    CROP_MODE: 'RESIZE'
+    CROP_MARGIN: 0.0
+  FEATURE_LEVEL: 3
   SAME_SUPPORT_IN_BATCH: True # do not put to False while FineTuning
   AAF:
-    # CFG: '/home/pierre/Documents/PHD/fsfcos/cfg/aaf_module/feature_reweighting.yaml'
+    CFG: '/home/pierre/Documents/PHD/fsfcos/cfg/aaf_module/feature_reweighting.yaml'
     # CFG: '/home/pierre/Documents/PHD/fsfcos/cfg/aaf_module/dana.yaml'
-    CFG: '/home/pierre/Documents/PHD/fsfcos/cfg/aaf_module/meta_faster_rcnn.yaml'
+    # CFG: '/home/pierre/Documents/PHD/fsfcos/cfg/aaf_module/meta_faster_rcnn.yaml'
     # CFG: '/home/pierre/Documents/PHD/fsfcos/cfg/aaf_module/dynamic.yaml'
     # CFG: '/home/pierre/Documents/PHD/fsfcos/cfg/aaf_module/self_adapt.yaml'
 # OUTPUT_DIR: './Experiments_FSFCOS'
-OUTPUT_DIR: '/home/pierre/Documents/PHD/Experiments_FSFCOS/Experiments_paper/MFRCN'
+OUTPUT_DIR: '/home/pierre/Documents/PHD/Experiments_FSFCOS/Experiments_paper/FRW_'
 RANDOM:
   DISABLED: False
 LOGGING:
   INTERVAL: 20
-  EVAL_INTERVAL: 3000
+  EVAL_INTERVAL: 1000
 FINETUNING: True
 FINETUNE:
   EPISODES: 10000
   FREEZE_AT: 5
   LR: 0.0001
-  EXAMPLES: 'deterministic' # 'random' / 'rng_same' / 'deterministic'
+  EXAMPLES: 'rng_same' # 'random' / 'rng_same' / 'deterministic'
   SHOTS: [5, 10]
   MIXED: True
   STEPS: (10000,)

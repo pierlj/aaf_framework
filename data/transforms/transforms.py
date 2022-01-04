@@ -106,3 +106,18 @@ class Normalize(object):
         if target is None:
             return image
         return image, target
+
+class ColorJitter(object):
+    def __init__(self, brightness=0, contrast=0, saturation=0, hue=0):
+
+        self.color_jitter = torchvision.transforms.ColorJitter(brightness=brightness,
+                                                               contrast=contrast,
+                                                               saturation=saturation,
+                                                               hue=hue) 
+
+    def __call__(self, image, target=None):
+        image = self.color_jitter(image)
+
+        if target is None:
+            return image
+        return image, target

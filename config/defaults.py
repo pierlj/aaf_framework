@@ -204,7 +204,7 @@ _C.MODEL.FCOS = CN()
 _C.MODEL.FCOS.NUM_CLASSES = 81  # the number of classes including background
 _C.MODEL.FCOS.FPN_STRIDES = [8, 16, 32, 64, 128]
 _C.MODEL.FCOS.PRIOR_PROB = 0.01
-_C.MODEL.FCOS.INFERENCE_TH = 0.05
+_C.MODEL.FCOS.INFERENCE_TH = 0.0
 _C.MODEL.FCOS.NMS_TH = 0.6
 _C.MODEL.FCOS.PRE_NMS_TOP_N = 1000
 
@@ -461,3 +461,11 @@ _C.FINETUNE.SHOTS = [1]
 _C.FINETUNE.MIXED = True
 # Controls LR decay steps
 _C.FINETUNE.STEPS = (1000, )
+
+_C.AUGMENT = CN()
+_C.AUGMENT.BRIGHTNESS = 0.4
+_C.AUGMENT.CONTRAST = 0.4
+_C.AUGMENT.SATURATION = 0.4
+_C.AUGMENT.HUE = 0.15
+# vertical AND horizontal flip proba (i.e. proba of keeping image as it is is FLIP_PROBA^2)
+_C.AUGMENT.FLIP_PROBA = 0.5

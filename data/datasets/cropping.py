@@ -1,6 +1,7 @@
 import torch
 from fcos_core.structures.bounding_box import BoxList
 from ...utils.visualization import plot_single_img_boxes
+from ...utils.utils import pad_to_size
 
 class CroppingModule():
     """
@@ -20,13 +21,18 @@ class CroppingModule():
 
     def crop_resize(self, img, target):
         """
-        Resize target to a fixed size disregarding aspect ratio and original size
+        Resize target to a fixed size preserving aspect ratio
         """
         box = target.bbox[0]
         enlarged_box = box.clone()
         hw = box[2:] - box[:2]
-        enlarged_box[:2] = enlarged_box[:2] - hw * self.margin
-        enlarged_box[2:] = enlarged_box[2:] + hw * self.margin
+        max_dim = torch.ones_like(hw) * hw.max()
+
+        enlarged_box[:2] = enlarged_box[:2] - (max_dim - hw) / 2
+        enlarged_box[2:] = enlarged_box[2:] + (max_dim - hw) / 2
+
+        enlarged_box[:2] = enlarged_box[:2] - max_dim * self.margin
+        enlarged_box[2:] = enlarged_box[2:] + max_dim * self.margin
 
         enlarged_box[::2] = enlarged_box[::2].clamp(0, img.shape[2])
         enlarged_box[1::2] = enlarged_box[1::2].clamp(0, img.shape[1])
@@ -55,7 +61,8 @@ class CroppingModule():
 
     def crop_keep_ratio(self, img, target):
         """
-        Resize objects to support image size keeping ratio
+        Resize objects to support image size keeping ratio.
+        Objects smaller than self.size are kept to the same size. 
         """
         box = target.bbox[0]
 
@@ -89,8 +96,10 @@ class CroppingModule():
 
     def crop_keep_size(self, img, target):
         """
-        Keep size as in original img but cropped in smaller size
-        For object larger, resize is still required.
+        Resize objects to support image size keeping ratio.
+        Objects smaller than self.size are kept to the same size.
+
+        Discard context outside enlarged_box (zero_pad)
         """
         box = target.bbox[0].long()
 
@@ -105,7 +114,7 @@ class CroppingModule():
         box_inside = box - enlarged_box[:2].repeat(2)
         box_inside = box_inside.long()
 
-        # Center crop 
+        # Center crop
         if self.center_crop:
             wh_enlarged = enlarged_box[2:] - enlarged_box[:2]
             box_inside[::2] += (wh_enlarged[0] / 2 - torch.mean(box_inside[::2].float())).long()
@@ -119,6 +128,105 @@ class CroppingModule():
 
         area_dim = enlarged_box[2:] - enlarged_box[:2]
         target_inside = BoxList(box_inside.unsqueeze(0), area_dim)
+        size = self.size
+        if size is not None:
+
+            # print(target_inside.size)
+            target_inside = target_inside.resize(size)
+            img_cropped = torch.nn.functional.interpolate(
+                img_cropped.unsqueeze(0), size)[0]
+
+        # Keep these in order to get the size of object w.r.t the original image
+        target_inside.add_field('old_bbox', box)
+        target_inside.add_field('old_img_size', img.shape)
+        target_inside._copy_extra_fields(target)
+        return img_cropped, target_inside
+
+
+    def crop_reflect(self, img, target):
+        """
+        Resize objects to support image size keeping ratio.
+        Objects smaller than self.size are kept to the same size.
+
+        Discard context outside enlarged_box (zero_pad)
+        """
+        box = target.bbox[0].long()
+
+        hw = box[2:] - box[:2]
+        max_dim = torch.ones_like(hw) * hw.max()
+
+        enlarged_box = box.clone()
+        enlarged_box[:2] = enlarged_box[:2] - (max_dim - hw) / 2
+        enlarged_box[2:] = enlarged_box[2:] + (max_dim - hw) / 2
+
+        enlarged_box[:2] = enlarged_box[:2] - max_dim * self.margin
+        enlarged_box[2:] = enlarged_box[2:] + max_dim * self.margin
+
+        enlarged_box[::2] = enlarged_box[::2].clamp(0, img.shape[2])
+        enlarged_box[1::2] = enlarged_box[1::2].clamp(0, img.shape[1])
+
+        box_inside = box - enlarged_box[:2].repeat(2)
+        box_inside[:2] = box_inside[:2] - hw * self.margin / 2
+        box_inside[2:] = box_inside[2:] + hw * self.margin / 2
+        box_inside[::2] = box_inside[::2].clamp(0, img.shape[2])
+        box_inside[1::2] = box_inside[1::2].clamp(0, img.shape[1])
+
+        area_dim = enlarged_box[2:] - enlarged_box[:2]
+        target_inside = BoxList(box_inside.unsqueeze(0), area_dim)
+
+        img_cropped = img[:, enlarged_box[1]:enlarged_box[3],
+                          enlarged_box[0]:enlarged_box[2]]
+        enlared_hw = enlarged_box[2:] - enlarged_box[:2]
+
+        if self.size[0] < enlared_hw[0] or self.size[1] < enlared_hw[1]:
+            target_inside = target_inside.resize(self.size)
+            img_cropped = torch.nn.functional.interpolate(
+                img_cropped.unsqueeze(0), self.size)[0]
+
+        box_inside = target_inside.bbox[0].long()
+        img_cropped = img_cropped[:, box_inside[1]:box_inside[3],
+                                  box_inside[0]:box_inside[2]]
+        
+        img_cropped = pad_to_size(img_cropped, self.size)
+
+        # Keep these in order to get the size of object w.r.t the original image
+        target_inside.add_field('old_bbox', box)
+        target_inside.add_field('old_img_size', img.shape)
+        target_inside._copy_extra_fields(target)
+        return img_cropped, target_inside
+
+
+
+    def crop_resize_mask(self, img, target):
+        """
+        Resize target to a fixed size but mask out the object.
+
+        EXPERIMENTATION PURPOSE
+        Testing if network can learn shortcuts from background/context
+        """
+        box = target.bbox[0].long()
+        img[:,box[1]:box[3], box[0]:box[2]] = 0
+        enlarged_box = box.clone()
+        hw = box[2:] - box[:2]
+        max_dim = torch.ones_like(hw) * hw.max()
+
+        enlarged_box[:2] = enlarged_box[:2] - (max_dim - hw) / 2
+        enlarged_box[2:] = enlarged_box[2:] + (max_dim - hw) / 2
+
+        enlarged_box[:2] = enlarged_box[:2] - max_dim * self.margin
+        enlarged_box[2:] = enlarged_box[2:] + max_dim * self.margin
+
+        enlarged_box[::2] = enlarged_box[::2].clamp(0, img.shape[2])
+        enlarged_box[1::2] = enlarged_box[1::2].clamp(0, img.shape[1])
+
+        box_inside = box - enlarged_box[:2].repeat(2)
+        enlarged_box = enlarged_box.long()
+        img_cropped = img[:, enlarged_box[1]:enlarged_box[3],
+                          enlarged_box[0]:enlarged_box[2]]
+
+        area_dim = enlarged_box[2:] - enlarged_box[:2]
+        target_inside = BoxList(box_inside.unsqueeze(0), area_dim)
+
         size = self.size
         if size is not None:
 
@@ -151,7 +259,7 @@ class CroppingModule():
                             torch.max(torch.zeros_like(box[:2]),pixel_shift + delta - box[:2]) + \
                             hw * margin
 
-        enlarged_box[:2] = enlarged_box[:2] 
+        enlarged_box[:2] = enlarged_box[:2]
 
         enlarged_box[::2] = enlarged_box[::2].clamp(0, shape[2])
         enlarged_box[1::2] = enlarged_box[1::2].clamp(0, shape[1])

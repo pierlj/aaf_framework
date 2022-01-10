@@ -2,7 +2,7 @@
 
 ## Framework generalities
 This repository contains the code of the AAF framework proposed in this
-[paper](https://pierlj.github.io/). The main idea behind this work is to propose
+[paper](https://arxiv.org/abs/2201.02052). The main idea behind this work is to propose
 a flexible framework to implement various attention mechanisms for Few-Shot
 Object Detection. The framework is composed of 3 different modules: Spatial Alignment, 
 Global Attention and Fusion Layer, which are applied successively to combine 

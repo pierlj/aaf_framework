@@ -73,8 +73,8 @@ def random_choice(len_tensor, n, generator=None):
     return keep
 
 
-def pad_to_size(img, size):
-    target_size = list(size).copy()
+def pad_to_size(img, size, target):
+    size_ = list(size).copy()
     h, w = img.shape[-2:]
     assert size[0] >= h and size[
         1] >= w, 'Pad size must be greater than image size'
@@ -83,9 +83,10 @@ def pad_to_size(img, size):
     b = (size[0] - h) // 2 + (size[0] - h) % 2
     l = (size[1] - w) // 2
     r = (size[1] - w) // 2 + (size[1] - w) % 2
+    target = target + torch.tensor([l, t, l, t])
     padded_img = pad(img, (l, t, r, b), padding_mode='reflect')
-    if padded_img.shape[-2] == target_size[0] and padded_img.shape[
-            -1] == target_size[1]:
-        return padded_img
+    if padded_img.shape[-2] == size_[0] and padded_img.shape[
+            -1] == size_[1]:
+        return padded_img, target
     else:
-        return pad_to_size(padded_img, target_size)
+        return pad_to_size(padded_img, size_, target)

@@ -5,6 +5,7 @@ from torch import nn
 
 from .inference import make_fcos_postprocessor
 from .loss import make_fcos_loss_evaluator
+from .fs_loss import FSLossComputation
 
 from fcos_core.layers import Scale
 from fcos_core.layers import DFConv2d
@@ -30,7 +31,7 @@ class FSFCOSHead(torch.nn.Module):
         self.use_dcn_in_tower = cfg.MODEL.FCOS.USE_DCN_IN_TOWER
 
         self.aaf_module = AAFModule(cfg)
-        aaf_channels = self.aaf_module.aaf_cfg.OUT_CH
+        aaf_channels = cfg.MODEL.RESNETS.BACKBONE_OUT_CHANNELS
 
         cls_tower = []
         bbox_tower = []
@@ -152,10 +153,13 @@ class FSFCOSModule(torch.nn.Module):
         box_selector_test = make_fcos_postprocessor(cfg)
 
         loss_evaluator = make_fcos_loss_evaluator(cfg)
+
         self.head = head
         self.box_selector_test = box_selector_test
         self.loss_evaluator = loss_evaluator
         self.fpn_strides = cfg.MODEL.FCOS.FPN_STRIDES
+
+        self.fsloss_evaluator = FSLossComputation(cfg)
 
 
     def forward(self, images, features, targets=None, classes=None, support=None):
@@ -170,7 +174,8 @@ class FSFCOSModule(torch.nn.Module):
         Returns:
             boxes (list[BoxList]): the predicted boxes from the RPN, one BoxList per
                 image.
-            losses (dict[Tensor]): the losses for the model during training. During
+            losses (dict
+            [Tensor]): the losses for the model during training. During
                 testing, it is an empty dict.
         """
 
@@ -182,7 +187,8 @@ class FSFCOSModule(torch.nn.Module):
             return self._forward_train(
                 locations, box_cls,
                 box_regression,
-                centerness, targets
+                centerness, targets, features, 
+                classes, support
             )
         else:
             return self._forward_test(
@@ -190,15 +196,26 @@ class FSFCOSModule(torch.nn.Module):
                 centerness, images.image_sizes
             )
 
-    def _forward_train(self, locations, box_cls, box_regression, centerness, targets):
+    def _forward_train(self, locations, 
+                            box_cls, 
+                            box_regression, 
+                            centerness, 
+                            targets,
+                            features, 
+                            classes, 
+                            support):
         loss_box_cls, loss_box_reg, loss_centerness = self.loss_evaluator(
             locations, box_cls, box_regression, centerness, targets
         )
+
         losses = {
             "loss_cls": loss_box_cls,
             "loss_reg": loss_box_reg,
             "loss_centerness": loss_centerness
         }
+
+        fs_losses = self.fsloss_evaluator(features, support, classes)
+        losses.update(fs_losses)
         return None, losses
 
     def _forward_test(self, locations, box_cls, box_regression, centerness, image_sizes):

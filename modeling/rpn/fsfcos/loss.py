@@ -108,6 +108,11 @@ class FCOSLossComputation(object):
             [256, 512],
             [512, INF],
         ]
+        # object_sizes_of_interest = [
+        #     [-1, 64],
+        #     [64, 128],
+        #     [128, INF],
+        # ]
         expanded_object_sizes_of_interest = []
         for l, points_per_level in enumerate(points):
             object_sizes_of_interest_per_level = \

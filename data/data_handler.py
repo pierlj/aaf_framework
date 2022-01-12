@@ -232,7 +232,7 @@ class DataHandler():
         dataset_list = getattr(self.cfg.DATASETS, self.data_source.upper())
 
         # If bbox aug is enabled in testing, simply set transforms to None and we will apply transforms later
-        transforms = None if self.is_train and self.cfg.TEST.BBOX_AUG.ENABLED else build_transforms(self.cfg, self.is_train)
+        transforms = build_transforms(self.cfg, self.is_train, is_support=False)
         self.datasets = build_dataset(
             dataset_list,
             transforms,
@@ -245,8 +245,11 @@ class DataHandler():
             if not self.is_train and self.cfg.FINETUNE.EXAMPLES == 'deterministic':
                 dataset_list = getattr(self.cfg.DATASETS, 'TRAIN')
 
+            transforms_support = build_transforms(self.cfg,
+                                          self.is_train,
+                                          is_support=True)
             self.support_datasets = build_dataset(dataset_list,
-                                                  transforms,
+                                                  transforms_support,
                                                   DatasetCatalog,
                                                   cfg=self.cfg,
                                                   is_train=self.is_train,

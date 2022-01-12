@@ -113,10 +113,27 @@ class ColorJitter(object):
         self.color_jitter = torchvision.transforms.ColorJitter(brightness=brightness,
                                                                contrast=contrast,
                                                                saturation=saturation,
-                                                               hue=hue) 
+                                                               hue=hue)
 
     def __call__(self, image, target=None):
         image = self.color_jitter(image)
+
+        if target is None:
+            return image
+        return image, target
+
+
+class Cutout(object):
+    def __init__(self, p=0.5, scale=(0.02, 0.33)):
+
+        self.cutout = torchvision.transforms.RandomErasing(p=p,
+                                                           scale=scale,
+                                                           ratio=(0.3, 3.3),
+                                                           value=0,
+                                                           inplace=False)
+
+    def __call__(self, image, target=None):
+        image = self.cutout(image)
 
         if target is None:
             return image

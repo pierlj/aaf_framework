@@ -2,6 +2,7 @@ import torch
 from fcos_core.structures.bounding_box import BoxList
 from ...utils.visualization import plot_single_img_boxes
 from ...utils.utils import pad_to_size
+from ..transforms import Cutout
 
 class CroppingModule():
     """
@@ -14,6 +15,8 @@ class CroppingModule():
         self.size = cfg.FEWSHOT.SUPPORT.CROP_SIZE
         self.margin = cfg.FEWSHOT.SUPPORT.CROP_MARGIN
         self.center_crop = cfg.FEWSHOT.SUPPORT.CROP_CENTER
+
+        self.cutout = Cutout(cfg.AUGMENT.CUTOUT_PROBA_SUPPORT, cfg.AUGMENT.CUTOUT_SCALE)
 
     def crop(self, img, target):
         crop_method = getattr(self, 'crop_' + self.mode.lower())
@@ -148,7 +151,7 @@ class CroppingModule():
         Resize objects to support image size keeping ratio.
         Objects smaller than self.size are kept to the same size.
 
-        Discard context outside enlarged_box (zero_pad)
+        Discard context outside enlarged_box (miror_pad)
         """
         box = target.bbox[0].long()
 
@@ -164,31 +167,40 @@ class CroppingModule():
 
         enlarged_box[::2] = enlarged_box[::2].clamp(0, img.shape[2])
         enlarged_box[1::2] = enlarged_box[1::2].clamp(0, img.shape[1])
+        enlared_hw = enlarged_box[2:] - enlarged_box[:2]
 
         box_inside = box - enlarged_box[:2].repeat(2)
-        box_inside[:2] = box_inside[:2] - hw * self.margin / 2
-        box_inside[2:] = box_inside[2:] + hw * self.margin / 2
-        box_inside[::2] = box_inside[::2].clamp(0, img.shape[2])
-        box_inside[1::2] = box_inside[1::2].clamp(0, img.shape[1])
+        reflect_box = box_inside.clone()
+        reflect_box[:2] = reflect_box[:2] - hw * self.margin / 2
+        reflect_box[2:] = reflect_box[2:] + hw * self.margin / 2
+        reflect_box[::2] = reflect_box[::2].clamp(0, enlared_hw[0])
+        reflect_box[1::2] = reflect_box[1::2].clamp(0, enlared_hw[1])
 
         area_dim = enlarged_box[2:] - enlarged_box[:2]
         target_inside = BoxList(box_inside.unsqueeze(0), area_dim)
+        reflect_box = BoxList(reflect_box.unsqueeze(0), area_dim)
 
         img_cropped = img[:, enlarged_box[1]:enlarged_box[3],
                           enlarged_box[0]:enlarged_box[2]]
-        enlared_hw = enlarged_box[2:] - enlarged_box[:2]
 
+
+        # if enlarged_box is wider than support image size resize it
         if self.size[0] < enlared_hw[0] or self.size[1] < enlared_hw[1]:
             target_inside = target_inside.resize(self.size)
+            reflect_box = reflect_box.resize(self.size)
             img_cropped = torch.nn.functional.interpolate(
                 img_cropped.unsqueeze(0), self.size)[0]
 
-        box_inside = target_inside.bbox[0].long()
-        img_cropped = img_cropped[:, box_inside[1]:box_inside[3],
-                                  box_inside[0]:box_inside[2]]
-        
-        img_cropped = pad_to_size(img_cropped, self.size)
+        reflect_box = reflect_box.bbox[0].long()
+        img_cropped = img_cropped[:, reflect_box[1]:reflect_box[3],
+                                  reflect_box[0]:reflect_box[2]]
 
+        target_inside_reflect = target_inside.bbox[0] - reflect_box[:2].repeat(2)
+        img_cropped, box_inside = pad_to_size(img_cropped, self.size,
+                                                 target_inside_reflect)
+
+        img_cropped = self.cutout(img_cropped)
+        target_inside.bbox = box_inside.unsqueeze(0)
         # Keep these in order to get the size of object w.r.t the original image
         target_inside.add_field('old_bbox', box)
         target_inside.add_field('old_img_size', img.shape)

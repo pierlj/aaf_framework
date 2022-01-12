@@ -173,6 +173,24 @@ class DatasetCatalog(object):
             "/home/pierre/Documents/PHD/Datasets/DIOR/coco_format/test",
             "ann_file":
             "/home/pierre/Documents/PHD/Datasets/DIOR/coco_format/annotations/instances_test.json"
+        },
+        "dota_256_train": {
+            "img_dir":
+            "/home/pierre/Documents/PHD/Datasets/DOTA_256/coco_format/train",
+            "ann_file":
+            "/home/pierre/Documents/PHD/Datasets/DOTA_256/coco_format/annotations/instances_train.json"
+        },
+        "dota_256_val": {
+            "img_dir":
+            "/home/pierre/Documents/PHD/Datasets/DOTA_256/coco_format/val",
+            "ann_file":
+            "/home/pierre/Documents/PHD/Datasets/DOTA_256/coco_format/annotations/instances_val.json"
+        },
+        "dota_256_test": {
+            "data_dir":
+            "/home/pierre/Documents/PHD/Datasets/DOTA_256/coco_format/test",
+            "ann_file":
+            "/home/pierre/Documents/PHD/Datasets/DOTA_256/coco_format/annotations/instances_test.json"
         }
     }
 

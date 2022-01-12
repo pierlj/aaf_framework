@@ -262,9 +262,11 @@ class AttentionRWWS(BaseAttention):
             scale = 1/8 * 2 ** (- level)
             # pooled_feat = torchvision.ops.roi_align(feat, targets, output_size=P, spatial_scale=scale)
             # support_pooled.append(pooled_feat.mean(dim=[-1,-2], keepdim=True).reshape(B, N_s, C, 1, 1))
+            noise = torch.randn_like(feat) * self.cfg.AUGMENT.NOISE_FEATURES
             support_pooled.append(
-                feat.mean(dim=[-1, -2],
-                                 keepdim=True).reshape(B, N_s, C, 1, 1))
+                feat.mean(dim=[-1, -2], keepdim=True).reshape(B, N_s, C, 1,
+                                                              1) +
+                torch.randn(B, N_s, C, 1, 1).to(feat) * self.cfg.AUGMENT.NOISE_FEATURES)
             # support_pooled.append(
             #     pooled_feat.max(dim=-1, keepdim=True)[0].max(
             #                     dim=-2, keepdim=True)[0].reshape(B, N_s, C, 1, 1))
@@ -297,8 +299,8 @@ class AttentionRWWS(BaseAttention):
             #                                        feat.shape[-1]).mean(dim=2)
             # (feat * F.softmax(support_pooled[level], dim=2)# * mask
             (
-                # feat * torch.sigmoid(support_pooled[level])   # * mask
-                feat * 0.5 * (1 + cos(feat, support_pooled[level]))
+                feat * torch.sigmoid(support_pooled[level])   # * mask
+                # feat * 0.5 * (1 + cos(feat, support_pooled[level])).unsqueeze(2)
             ).reshape(B, N_way, K, C, feat.shape[-2],
                       feat.shape[-1]).mean(dim=2)
             for level, (feat,

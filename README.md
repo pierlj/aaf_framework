@@ -16,7 +16,6 @@ The inputs of the framework are:
 The framework can be configured using a separate config file. Examples of such files are available under `/config_files/aaf_framework/`. The structure of these files is simple: 
 ```python
 ALIGN_FIRST: #True/False Run Alignment before Attention when True
-OUT_CH: # Number of features output by the fusion layer
 ALIGNMENT:
     MODE: # Name of the alignment module selected
 ATTENTION:

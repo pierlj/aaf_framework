@@ -88,9 +88,11 @@ class Trainer():
         Main training loop. Starts base training and multiple finetunings
         with different number of shots after (if finetuning is enabled). 
         """
+        self.save_config()
         if self.cfg.FEWSHOT.ENABLED:
             self.query_loader, self.support_loader, self.train_classes = self.data_handler.get_dataloader()
             self.do_fs_train()
+            
             if self.cfg.FINETUNING:
                 self.is_finetuning = True
                 self.fintuning_start_iter = self.max_iter
@@ -203,7 +205,11 @@ class Trainer():
         self.meters = MetricLogger(delimiter="  ")
         iter_epoch = len(self.query_loader)
         self.max_iter = iter_epoch * self.episodes + self.fintuning_start_iter
-        start_iter = self.arguments["iteration"] if not self.is_finetuning else self.fintuning_start_iter
+
+        if self.cfg.FINETUNE.ONLY or self.is_finetuning:
+            start_iter = self.fintuning_start_iter
+        else:
+            start_iter = self.arguments["iteration"]
         self.model.train()
         start_training_time = time.time()
         end = time.time()
@@ -412,4 +418,10 @@ class Trainer():
         # Update cfg
         self.cfg.merge_from_list(
             ['FEWSHOT.K_SHOT', k_shot, 
-            'SOLVER.IMS_PER_BATCH', 8])
+            'SOLVER.IMS_PER_BATCH', 4])
+    
+
+    def save_config(self):
+        path_to_cfg_file = os.path.join(self.cfg.OUTPUT_DIR, 'model_cfg.yaml')
+        with open(path_to_cfg_file, 'w') as f:
+            f.write(self.cfg.dump())

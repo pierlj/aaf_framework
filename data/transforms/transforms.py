@@ -5,6 +5,9 @@ import torch
 import torchvision
 from torchvision.transforms import functional as F
 
+from fcos_core.structures.bounding_box import BoxList
+from fcos_core.structures.boxlist_ops import cat_boxlist, boxlist_iou
+
 
 class Compose(object):
     def __init__(self, transforms):
@@ -124,7 +127,7 @@ class ColorJitter(object):
 
 
 class Cutout(object):
-    def __init__(self, p=0.5, scale=(0.02, 0.33)):
+    def __init__(self, p=0.5, scale=(0.02, 0.33), level='image'):
 
         self.cutout = torchvision.transforms.RandomErasing(p=p,
                                                            scale=scale,
@@ -132,9 +135,89 @@ class Cutout(object):
                                                            value=0,
                                                            inplace=False)
 
-    def __call__(self, image, target=None):
-        image = self.cutout(image)
+        self.level = level
 
+    def __call__(self, image, target=None):
         if target is None:
             return image
+
+        if self.level == 'image':
+            image = self.cutout(image)
+        elif self.level == 'object':
+            image = image.clone()
+            for bbox in target.bbox:
+                bbox = bbox.long()
+                cropped_image = image[..., bbox[1]:bbox[3], bbox[0]:bbox[2]]
+                cropped_image = self.cutout(cropped_image)
+                image[..., bbox[1]:bbox[3], bbox[0]:bbox[2]] = cropped_image
         return image, target
+
+
+class RandomResizeCrop(object):
+    def __init__(self, size, p=0.5):
+        self.size = size
+        self.p = p
+
+    def __call__(self, image, target=None):
+        if target is not None:
+            if random.random() < self.p:
+                if 'masks' in target.fields():
+                    del target.extra_fields['masks']
+                selected_indices = self.random_subset_selection(len(target))
+                selected_target = cat_boxlist(
+                    [target[idx:(idx + 1)] for idx in selected_indices])
+
+                overall_box = self.compute_overall_bbox(selected_target)
+
+                delta = (torch.randn(4) + 0.5).clamp(0, 1)
+
+                cropping_box = overall_box + (torch.tensor(
+                    [0, 0, *image.shape[-2:]]) - overall_box) * delta
+                cropping_box = cropping_box.long()
+                cropping_box = self.square_box(cropping_box, image.shape[-2:])
+
+                over_box_list = BoxList(cropping_box.unsqueeze(0),
+                                        image.shape[-2:])
+
+                iou_with_target = boxlist_iou(over_box_list, target)[0]
+                selected_indices_all = torch.nonzero(
+                    iou_with_target >= 0.5 * target.area() /
+                    over_box_list.area()).flatten()
+                selected_target = cat_boxlist(
+                    [target[idx:(idx + 1)] for idx in selected_indices_all])
+
+                cropped_img = image[..., cropping_box[1]:cropping_box[3],
+                                    cropping_box[0]:cropping_box[2]]
+                selected_target = selected_target.crop(cropping_box)
+
+                cropped_img = torch.nn.functional.interpolate(
+                    cropped_img.unsqueeze(0), self.size)[0]
+                selected_target = selected_target.resize(self.size)
+                return cropped_img, selected_target
+            return image, target
+
+        else:
+            return image
+
+    def random_subset_selection(self, n_boxes):
+        k = random.randint(1, min(2, n_boxes))
+        subset = random.sample([i for i in range(n_boxes)], k)
+        return subset
+
+    def compute_overall_bbox(self, bbox_list):
+        return torch.cat([
+            bbox_list.bbox[:, :2].min(dim=0)[0],
+            bbox_list.bbox[:, 2:].max(dim=0)[0]
+        ])
+
+    def square_box(self, box, img_shape):
+        hw = box[2:] - box[:2]
+        max_dim = torch.ones_like(hw) * hw.max()
+
+        enlarged_box = box.clone()
+        enlarged_box[:2] = enlarged_box[:2] - (max_dim - hw) / 2
+        enlarged_box[2:] = enlarged_box[2:] + (max_dim - hw) / 2
+
+        enlarged_box[::2] = enlarged_box[::2].clamp(0, img_shape[1])
+        enlarged_box[1::2] = enlarged_box[1::2].clamp(0, img_shape[0])
+        return enlarged_box

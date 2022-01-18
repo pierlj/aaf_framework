@@ -1,7 +1,7 @@
 MODEL:
   META_ARCHITECTURE: "FSGeneralizedRCNN"
-  # WEIGHT: "catalog://ImageNetPretrained/MSRA/R-50"
-  WEIGHT: "./Experiments_FSFCOS/DOTA/FRW_256/model_final.pth"
+  WEIGHT: "catalog://ImageNetPretrained/MSRA/R-50"
+  # WEIGHT: "./Experiments_FSFCOS/DOTA/FRW_256_CROP_RESIZE/model_final.pth"
   RPN_ONLY: True
   FCOS_ON: True
   BACKBONE:
@@ -17,9 +17,9 @@ MODEL:
     INFERENCE_TH: 0.05
     NUM_CLASSES: 17
 DATASETS:
-  TRAIN: ("dota_256_train",)
-  TEST: ("dota_256_test",)
-  VAL: ("dota_256_val",)
+  TRAIN: ("dota_train",)
+  TEST: ("dota_test",)
+  VAL: ("dota_val",)
 INPUT:
   MIN_SIZE_TRAIN: (512,)
   MAX_SIZE_TRAIN: 512
@@ -83,7 +83,7 @@ FEWSHOT:
     # CFG: '/home/pierre/Documents/PHD/aaf_framework/config_files/aaf_module/dynamic.yaml'
     # CFG: '/home/pierre/Documents/PHD/aaf_framework/config_files/aaf_module/self_adapt.yaml'
 # OUTPUT_DIR: './Experiments_aaf_framework'
-OUTPUT_DIR: '/home/pierre/Documents/PHD/Experiments_FSFCOS/DOTA/FRW_DOTA256_256'
+OUTPUT_DIR: '/home/pierre/Documents/PHD/Experiments_FSFCOS/DOTA/FRW___'
 RANDOM:
   DISABLED: False
 LOGGING:
@@ -108,7 +108,9 @@ AUGMENT:
   CUTOUT_PROBA: 0.0
   CUTOUT_PROBA_SUPPORT: 0.0
   CUTOUT_SCALE: (0.02, 0.2)
+  CUTOUT_LEVEL: 'object'
   NOISE_FEATURES: 0.0
+  RANDOM_CROP_PROBA: 0.0
 FSLOSS:
   MODES: []
 

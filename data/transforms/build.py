@@ -44,7 +44,9 @@ def build_transforms(cfg, is_train=True, is_support=False):
     transform_list = transform_list + [T.ToTensor(), normalize_transform]
 
     if is_train and not is_support:
-        transform_list.append(T.Cutout(cfg.AUGMENT.CUTOUT_PROBA, cfg.AUGMENT.CUTOUT_SCALE))
+        transform_list = transform_list + [
+            T.Cutout(cfg.AUGMENT.CUTOUT_PROBA, cfg.AUGMENT.CUTOUT_SCALE),
+        ]
 
     transform = T.Compose(transform_list)
     

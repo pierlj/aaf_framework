@@ -117,10 +117,20 @@ class COCODataset(COCODataset_):
     It samples classes from selected_classes to allow episodic training with 
     subsets of classes only.
     """
-    def __init__(self, *args, selected_classes=None, is_support=None, filter_obj=True, **kwargs):
+    def __init__(self, *args,
+                selected_classes=None,
+                is_support=None,
+                filter_obj=True,
+                crop_transform=None,
+                **kwargs):
+
+        self.cfg = kwargs['cfg']
+        del kwargs['cfg']
+
         super(COCODataset, self).__init__(*args, **kwargs)
         self.selected_classes = selected_classes
         self.is_support = is_support
+
 
         self.class_table = {self.json_category_id_to_contiguous_id[k]: list(set(class_idx_list))
                             for k, class_idx_list in self.coco.catToImgs.items()}
@@ -129,7 +139,7 @@ class COCODataset(COCODataset_):
             self.filter_class_table()
 
         self.image_ids_to_ids = {img_id: dataset_id for dataset_id, img_id in enumerate(self.ids)}
-
+        self.crop_transform = crop_transform
 
     def __getitem__(self, idx):
         img, target, idx = super(COCODataset, self).__getitem__(idx)
@@ -146,6 +156,9 @@ class COCODataset(COCODataset_):
 
             target.bbox = bbox
             target.add_field('labels', labels)
+            # plot_single_img_boxes(img, target, self.cfg)
+            if self.crop_transform is not None:
+                img, target = self.crop_transform(img, target)
             # plot_single_img_boxes(img, target, self.cfg)
 
         return img, target, idx
@@ -193,8 +206,7 @@ class SupportCOCODataset(COCODataset):
     according to its cropping module. 
     """
     def __init__(self, *args, rng=None, **kwargs):
-        self.cfg = kwargs['cfg']
-        del kwargs['cfg']
+
         # kwargs['filter_obj'] = False
         super(SupportCOCODataset, self).__init__(*args, **kwargs)
 
@@ -242,8 +254,6 @@ class SupportCOCODataset(COCODataset):
 
 class FinetuneCOCODataset(COCODataset):
     def __init__(self, *args, rng=None, **kwargs):
-        self.cfg = kwargs['cfg']
-        del kwargs['cfg']
         super(FinetuneCOCODataset, self).__init__(*args, **kwargs)
 
         if rng is not None:

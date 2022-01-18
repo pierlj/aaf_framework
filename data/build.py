@@ -12,6 +12,7 @@ from . import samplers
 
 from .collate_batch import BatchCollator, BBoxAugCollator
 from .transforms import build_transforms
+from .transforms import RandomResizeCrop
 
 
 def build_dataset(dataset_list, transforms, dataset_catalog, cfg=None, is_train=True, mode='train', rng=None):
@@ -32,11 +33,16 @@ def build_dataset(dataset_list, transforms, dataset_catalog, cfg=None, is_train=
     for dataset_name in dataset_list:
         data = dataset_catalog.get(dataset_name)
         args = data["args"]
+        args["cfg"] = cfg
         if mode == 'support' or (mode == 'finetune' and is_train) :
             data["factory"] = mode.capitalize() + data["factory"]
-            args["cfg"] = cfg
             args["rng"] = rng
             args["remove_images_without_annotations"] = True
+
+        if mode != 'support' and is_train:
+            args['crop_transform'] = RandomResizeCrop(
+                (cfg.INPUT.MIN_SIZE_TRAIN[0], cfg.INPUT.MIN_SIZE_TRAIN[0]),
+                p=cfg.AUGMENT.RANDOM_CROP_PROBA)
         factory = getattr(D, data["factory"])
 
         # for COCODataset, we want to remove images without annotations

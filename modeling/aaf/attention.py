@@ -498,14 +498,17 @@ class GRUAttention(BaseAttention):
         self.out_mode = AAFIOMode.Q_BCHW_S_NCHW
 
     def forward(self, features):
+        L = self.cfg.FEWSHOT.FEATURE_LEVEL
+        K = self.cfg.FEWSHOT.K_SHOT
 
         query_features = features['query' + self.input_name]
-        support_features = features['support' + self.input_name]
+        support_features = features['support' + self.input_name][:L]
         support_targets = features['support_targets']
 
         support_pooled = []
         query_pooled = []
-        K = self.cfg.FEWSHOT.K_SHOT
+
+
 
         for level, s_feat in enumerate(support_features):
             q_feat = query_features[level]

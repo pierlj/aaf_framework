@@ -1,8 +1,8 @@
 import numpy as np
 import os, sys
 
-import matplotlib
-matplotlib.use('TkAgg')
+# import matplotlib
+# matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import matplotlib.colors

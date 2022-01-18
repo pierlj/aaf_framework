@@ -223,7 +223,7 @@ class Trainer():
             print('Episode classes: {}'.format(str(self.train_classes)))
             for iteration, (images, targets, _) in enumerate(tqdm(self.query_loader), start_iter):
 
-
+                # print(targets)
                 data_time = time.time() - end
                 iteration = epoch * iter_epoch + iteration + 1
                 self.arguments["iteration"] = iteration

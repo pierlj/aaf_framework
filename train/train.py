@@ -10,6 +10,9 @@ import time
 import sys
 
 import torch
+
+from apex import amp
+
 from fcos_core.config import cfg
 from fcos_core.utils.metric_logger import MetricLogger
 from fcos_core.engine.trainer import reduce_loss_dict
@@ -41,6 +44,10 @@ class Trainer():
 
         self.optimizer = make_optimizer(cfg, self.model)
         self.scheduler = make_lr_scheduler(cfg, self.optimizer)
+
+        if self.cfg.AMP.ACTIVATED:
+            opt_level = self.cfg.AMP.MODE
+            self.model, self.optimizer = amp.initialize(self.model, self.optimizer, opt_level=opt_level)
 
         self.arguments = {}
         self.arguments["iteration"] = 0
@@ -92,7 +99,7 @@ class Trainer():
         if self.cfg.FEWSHOT.ENABLED:
             self.query_loader, self.support_loader, self.train_classes = self.data_handler.get_dataloader()
             self.do_fs_train()
-            
+
             if self.cfg.FINETUNING:
                 self.is_finetuning = True
                 self.fintuning_start_iter = self.max_iter
@@ -134,7 +141,7 @@ class Trainer():
             self.arguments["iteration"] = iteration
 
 
-            images = images.to(self.device)
+            images = images.to(self.device, non_blocking=True)
             targets = [target.to(self.device) for target in targets]
 
             loss_dict = self.model(images, targets)
@@ -231,7 +238,7 @@ class Trainer():
                 # Main difference with do_train: support feature computation once per iteration
                 support = self.model.compute_support_features(self.support_loader, self.device)
 
-                images = images.to(self.device)
+                images = images.to(self.device, non_blocking=True)
                 targets = [target.to(self.device) for target in targets]
 
                 loss_dict = self.model(images, targets, self.train_classes, support=support)
@@ -243,15 +250,22 @@ class Trainer():
                 losses_reduced = sum(loss for loss in loss_dict_reduced.values())
                 self.meters.update(loss=losses_reduced, **loss_dict_reduced)
 
-                self.optimizer.zero_grad()
-                losses.backward()
+                # self.optimizer.zero_grad()
+                for param in self.model.parameters():
+                    param.grad = None
+
+                if self.cfg.AMP.ACTIVATED:
+                    with amp.scale_loss(losses, self.optimizer) as scaled_loss:
+                        scaled_loss.backward()
+                else:
+                    losses.backward()
                 # torch.nn.utils.clip_grad_norm_(self.model.parameters(), 5.0) # use only for MFRCN to reduce unstability
 
                 # print(self.model.support_features_extractor.body.layer4[2].conv3.
                 #       weight.grad)
 
                 self.optimizer.step()
-                self.scheduler.step()
+                # self.scheduler.step()
 
                 batch_time = time.time() - end
                 end = time.time()
@@ -417,9 +431,9 @@ class Trainer():
 
         # Update cfg
         self.cfg.merge_from_list(
-            ['FEWSHOT.K_SHOT', k_shot, 
+            ['FEWSHOT.K_SHOT', k_shot,
             'SOLVER.IMS_PER_BATCH', 4])
-    
+
 
     def save_config(self):
         path_to_cfg_file = os.path.join(self.cfg.OUTPUT_DIR, 'model_cfg.yaml')

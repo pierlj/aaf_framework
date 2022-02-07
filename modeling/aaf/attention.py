@@ -228,12 +228,16 @@ class AttentionRWWS(BaseAttention):
         super(AttentionRWWS, self).__init__(*args)
 
         self.pooled_vectors = None
-        self.pool_size = 3
 
+        # in_feat = self.cfg.MODEL.RESNETS.BACKBONE_OUT_CHANNELS * self.cfg.FEWSHOT.FEATURE_LEVEL
+        # out_feat = self.cfg.MODEL.RESNETS.BACKBONE_OUT_CHANNELS
+        # self.mlp_level = nn.Sequential(nn.Linear(in_feat, out_feat),
+        #                                 nn.LeakyReLU(),
+        #                                 nn.Linear(out_feat,out_feat),
+        #                                 nn.Sigmoid())
 
 
     def forward(self, features):
-
         query_features = features['query' + self.input_name]
         support_features = features['support' + self.input_name]
         support_targets = features['support_targets']
@@ -243,69 +247,33 @@ class AttentionRWWS(BaseAttention):
         K = self.cfg.FEWSHOT.K_SHOT
 
         N_way = N_s // K
-        # support_pooled = [
-        #     # feat.permute(1, 0, 2, 3, 4).max(-1)[0].max(-1)[0].reshape(
-        #     #     N_s * B * C, 1, 1, 1)
-        #     # feat.permute(1,0,2,3,4).max(-1)[0].max(-1)[0].reshape(B, N_s, C, 1, 1)
-        #     feat.permute(1, 0, 2, 3,
-        #                  4).mean(dim=[-1, -2],
-        #                          keepdim=True)  #.reshape(N_s * B * C, 1, 1, 1)
-        #     for feat in support_features
-        # ]
+
+        n_levels = self.cfg.FEWSHOT.FEATURE_LEVEL
 
         support_pooled = []
         for level, feat in enumerate(support_features):
-            N_S, B, C, H, W = feat.shape
-            P = self.pool_size
+            N_s, B, C, H, W = feat.shape
             feat = feat.permute(1, 0, 2, 3, 4).reshape(B * N_s, C, H, W)
-            targets = [t.bbox for t in support_targets] * B
-            scale = 1/8 * 2 ** (- level)
-            # pooled_feat = torchvision.ops.roi_align(feat, targets, output_size=P, spatial_scale=scale)
-            # support_pooled.append(pooled_feat.mean(dim=[-1,-2], keepdim=True).reshape(B, N_s, C, 1, 1))
-            noise = torch.randn_like(feat) * self.cfg.AUGMENT.NOISE_FEATURES
             support_pooled.append(
-                feat.mean(dim=[-1, -2], keepdim=True).reshape(B, N_s, C, 1,
-                                                              1) +
-                torch.randn(B, N_s, C, 1, 1).to(feat) * self.cfg.AUGMENT.NOISE_FEATURES)
-            # support_pooled.append(
-            #     pooled_feat.max(dim=-1, keepdim=True)[0].max(
-            #                     dim=-2, keepdim=True)[0].reshape(B, N_s, C, 1, 1))
-            # support_pooled.append(
-            #     self.mlp(pooled_feat.reshape(-1, C * P * P)).reshape(
-            #         B, N_s, C, 1, 1))
+                    feat.mean(dim=[-1, -2], keepdim=True).reshape(B, N_s, C, 1, 1))
 
-        def match_level(box_area):
-            crop_area = self.cfg.FEWSHOT.SUPPORT.CROP_SIZE[0] ** 2
-            # crop_area = crop_area.item()
-            L = self.cfg.FEWSHOT.FEATURE_LEVEL - 1
-            return min(L, max(0, math.floor(math.log(box_area / crop_area) + L)))
+        # support_stacked = torch.cat(support_pooled, dim=2)
+        # support_stacked = support_stacked.reshape(B * N_s, n_levels * C)
+        # support_mixed = self.mlp_level(support_stacked).reshape(B, N_s, C, 1, 1)
 
-        target_labels = [match_level(t.area()) for t in support_targets]
-        # print(target_labels)
-        L = self.cfg.FEWSHOT.FEATURE_LEVEL
-        level_masks = F.one_hot(torch.tensor(target_labels), num_classes=L).T.view(L, 1, N_s, 1, 1, 1).cuda()
-        # for idx, level in enumerate(target_labels):
-        #     for l in range(5):
-        #         if level != l:
-        #             support_pooled[l][:, idx, :] = 0
-        # query_features = apply_tensor_list(query_features, 'flatten', 0, 2)
-        # # when using batched rw vectors
-        # query_features = apply_tensor_list(query_features, 'unsqueeze', 0)
         cos = torch.nn.CosineSimilarity(dim=2)
         support_attended_query = support_features
         query_attended_support = [
-            # F.conv2d(feat, support_pooled[level],
-            #          groups=C * N_s * B).reshape(B, N_way, K, C, feat.shape[-2],
-            #                                        feat.shape[-1]).mean(dim=2)
-            # (feat * F.softmax(support_pooled[level], dim=2)# * mask
             (
-                feat * torch.sigmoid(support_pooled[level])   # * mask
+                feat * torch.sigmoid(support_pooled[level])
+                # feat * torch.sigmoid((feat * support_pooled[level]).sum(dim=-2, keepdim=True))
                 # feat * 0.5 * (1 + cos(feat, support_pooled[level])).unsqueeze(2)
+                # feat * support_mixed
             ).reshape(B, N_way, K, C, feat.shape[-2],
                       feat.shape[-1]).mean(dim=2)
-            for level, (feat,
-                        mask) in enumerate(zip(query_features, level_masks))
+            for level, feat in enumerate(query_features)
         ]
+
         self.pooled_vectors = support_pooled
         self.support_target = support_targets
         self.query_attended_features = query_attended_support

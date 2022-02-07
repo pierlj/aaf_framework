@@ -149,7 +149,7 @@ class AlignmentSimilarity(BaseAlignment):
             support_aligned_query.append(aligned_support)
             query_aligned_support.append(query)
 
-            self.attention_map.append(sim_matrix.detach().cpu())
+            # self.attention_map.append(sim_matrix.detach().cpu())
 
         features.update({
             'query' + self.output_name: query_aligned_support,

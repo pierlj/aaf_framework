@@ -403,6 +403,8 @@ _C.FEWSHOT.SUPPORT_EXTRACTOR = 'same'
 _C.FEWSHOT.SAME_SUPPORT_IN_BATCH = False
 _C.FEWSHOT.FEATURE_LEVEL = 5
 
+_C.FEWSHOT.SPLIT_FILE = 'classes_split.txt'
+
 #------------------------------------------------------------------------------#
 # Support computation
 #------------------------------------------------------------------------------#
@@ -469,7 +471,9 @@ _C.AUGMENT.CONTRAST = 0.4
 _C.AUGMENT.SATURATION = 0.4
 _C.AUGMENT.HUE = 0.15
 # vertical AND horizontal flip proba (i.e. proba of keeping image as it is is FLIP_PROBA^2)
-_C.AUGMENT.FLIP_PROBA = 0.5
+_C.AUGMENT.HFLIP_PROBA = 0.5
+_C.AUGMENT.VFLIP_PROBA = 0.5
+_C.AUGMENT.FLIP_PROBA = 0.0
 _C.AUGMENT.CUTOUT_PROBA = 0.5
 _C.AUGMENT.CUTOUT_PROBA_SUPPORT = 0.5
 _C.AUGMENT.CUTOUT_SCALE = (0.02, 0.2)
@@ -479,3 +483,7 @@ _C.AUGMENT.RANDOM_CROP_PROBA = 0.5
 
 _C.FSLOSS = CN()
 _C.FSLOSS.MODES = []
+
+_C.AMP = CN()
+_C.AMP.ACTIVATED = False
+_C.AMP.MODE = 'O3'

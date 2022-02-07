@@ -120,7 +120,7 @@ class ProtoFCOSHead(torch.nn.Module):
                 cls_tower = self.cls_tower(feature)
                 box_tower = self.bbox_tower(feature)
 
-                logits[current_class].append(self.cls_logits(cls_tower,
+                logits[current_class].append(self.cls_logits(feature,
                                                         prototypes[current_class][l],
                                                         classes_episode))
                 if self.centerness_on_reg:
@@ -176,7 +176,7 @@ class ProtoClassifier(torch.nn.Module):
 
         K = prototypes.shape[1]
         dist_closest_proto = distance_matrix.reshape(B, K, H*W).min(dim=1)[0]
-        cls_level_logits = torch.exp(-dist_closest_proto / 2 / self.sigma)
+        cls_level_logits = -dist_closest_proto / 2 / self.sigma**2
         cls_level_logits = cls_level_logits.reshape(B, 1, H, W)
 
         return cls_level_logits

@@ -18,6 +18,8 @@ class CroppingModule():
 
         self.cutout = Cutout(cfg.AUGMENT.CUTOUT_PROBA_SUPPORT, cfg.AUGMENT.CUTOUT_SCALE)
 
+        self.ms_cropper = MultiScaleSupport(margin=self.margin)
+
     def crop(self, img, target):
         crop_method = getattr(self, 'crop_' + self.mode.lower())
         return crop_method(img, target)
@@ -253,6 +255,18 @@ class CroppingModule():
         target_inside._copy_extra_fields(target)
         return img_cropped, target_inside
 
+    def crop_multi_scale(self, image, target):
+        images, targets = self.ms_cropper(image, target)
+        images = [
+            torch.nn.functional.interpolate(img.unsqueeze(0), self.size)[0]
+                for img in images
+        ]
+
+        targets = [t.resize(self.size) for t in targets]
+        target.add_field('ms_targets', targets)
+        image = torch.cat(images, dim=0)
+        return image, target
+
     def get_enlarged_box(self, box, shape, margin=0.0):
         enlarged_box = box.clone()
         hw = box[2:] - box[:2]
@@ -277,3 +291,75 @@ class CroppingModule():
         enlarged_box[1::2] = enlarged_box[1::2].clamp(0, shape[1])
 
         return enlarged_box
+
+
+class MultiScaleSupport(object):
+    def __init__(self, min_size=32, step=2, n_boxes=3, margin=0.0):
+        self.min_size = min_size
+        self.step = step
+        self.n_boxes = n_boxes
+        self.margin = margin
+
+        self.object_sizes = [1, 4, 8] # [256,96,32]
+
+        self.extract_context = True
+
+    def __call__(self, image, target=None):
+        if target is None:
+            return image
+        else:
+            box = target.bbox[0]
+            hw = box[2:] - box[:2]
+            largest_dim = hw.max()
+
+            box[:2] = box[:2] - largest_dim * self.margin
+            box[2:] = box[2:] + largest_dim * self.margin
+
+            hw = box[2:] - box[:2]
+            center = ((box[2:] + box[:2]) / 2).long()
+            largest_dim = hw.max()
+
+            ms_boxes = []
+            for i in range(self.n_boxes):
+                delta = int(self.object_sizes[i] * max(self.min_size, largest_dim) // 2)
+                ms_boxes.append(torch.cat([center - delta, center + delta]))
+            ms_boxes.reverse() # get small object first, i.e. large box first
+            images_cropped, targets = self.crop(image, ms_boxes, target)
+
+            return images_cropped, targets  # concat in channel dimension
+
+    def crop(self, img, boxes, target):
+        images = []
+        targets = []
+        C, H, W = img.shape
+        for box in boxes:
+            box_clamped = box.clone()
+            box_clamped[::2] = box_clamped[::2].clamp(0, W)
+            box_clamped[1::2] = box_clamped[1::2].clamp(0, H)
+            box = box.long()
+            box_clamped = box_clamped.long()
+            box_hw = box[2:] - box[:2]
+
+            pad = (box * torch.tensor([-1, -1, 1, 1]) - torch.tensor([0, 0, *img.shape[-2:]]))
+            h_pad, w_pad = pad[1::2].long(), pad[::2].long()
+            frame = torch.zeros(C, *box_hw)
+
+            h_slice_frame = slice(box_clamped[1] + h_pad[0], box_clamped[3] + h_pad[0])
+            w_slice_frame = slice(box_clamped[0] + w_pad[0], box_clamped[2] + w_pad[0])
+            frame[:, h_slice_frame, w_slice_frame] = \
+                      img[:, box_clamped[1]:box_clamped[3],
+                             box_clamped[0]:box_clamped[2]]
+
+            current_target = target.copy_with_fields(target.fields())
+            current_target.bbox = (current_target.bbox - box[:2].repeat(2))
+            current_target.size = box[2:] - box[:2]
+            if self.extract_context:
+                frame_no_ctx = torch.zeros(C, *box_hw)
+                obj_box = current_target.bbox[0].long()
+                frame_no_ctx[:, obj_box[1]:obj_box[3], obj_box[0]:
+                            obj_box[2]] = frame[:, obj_box[1]:obj_box[3],
+                                                obj_box[0]: obj_box[2]]
+                frame = frame_no_ctx
+            images.append(frame)
+            targets.append(current_target)
+        return images, targets

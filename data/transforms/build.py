@@ -21,16 +21,19 @@ def build_transforms(cfg, is_train=True, is_support=False):
                 cfg.INPUT.MIN_SIZE_RANGE_TRAIN[1] + 1
             ))
         max_size = cfg.INPUT.MAX_SIZE_TRAIN
-        flip_prob = cfg.AUGMENT.FLIP_PROBA  # cfg.INPUT.FLIP_PROB_TRAIN
+        hflip_prob = cfg.AUGMENT.HFLIP_PROBA  # cfg.INPUT.FLIP_PROB_TRAIN
+        vflip_prob = cfg.AUGMENT.VFLIP_PROBA  # cfg.INPUT.FLIP_PROB_TRAIN
+
     else:
         min_size = cfg.INPUT.MIN_SIZE_TEST
         max_size = cfg.INPUT.MAX_SIZE_TEST
-        flip_prob = 0.0
+        hflip_prob = 0.0
+        vflip_prob = 0.0
 
     transform_list = [
         T.Resize(min_size, max_size),
-        T.RandomHorizontalFlip(flip_prob),
-        T.RandomVerticalFlip(flip_prob),
+        T.RandomHorizontalFlip(hflip_prob),
+        T.RandomVerticalFlip(vflip_prob),
     ]
 
     if is_train and not is_support:
@@ -49,5 +52,5 @@ def build_transforms(cfg, is_train=True, is_support=False):
         ]
 
     transform = T.Compose(transform_list)
-    
+
     return transform

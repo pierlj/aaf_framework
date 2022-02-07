@@ -203,7 +203,7 @@ class DataHandler():
                                                         is_support=is_support)
 
 
-            collator = BBoxAugCollator() if not self.is_train and self.cfg.TEST.BBOX_AUG.ENABLED else \
+            collator = BBoxAugCollator() if not self.is_train and self.cfg.TEST.BBOX_AUG.ENABLED  and not is_support else \
                 BatchCollator(self.cfg.DATALOADER.SIZE_DIVISIBILITY)
             num_workers = self.cfg.DATALOADER.NUM_WORKERS
             data_loader = torch.utils.data.DataLoader(
@@ -212,7 +212,8 @@ class DataHandler():
                 batch_sampler=batch_sampler,
                 collate_fn=collator,
                 worker_init_fn=self.rng_handler_fixed.worker_init_fn(),
-                generator=self.rng_handler_fixed.torch_rng
+                generator=self.rng_handler_fixed.torch_rng,
+                pin_memory=True
             )
             data_loaders.append(data_loader)
 

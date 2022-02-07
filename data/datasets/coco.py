@@ -246,8 +246,9 @@ class SupportCOCODataset(COCODataset):
         if self.crop:
             # plot_single_img_boxes(img, target, self.cfg)
             img, target = self.support_cropper.crop(img, target)
-            # plot_single_img_boxes(img, target, self.cfg)
-
+            # plot_single_img_boxes(img[:3], target.get_field('ms_targets')[0], self.cfg)
+            # plot_single_img_boxes(img[3:6],  target.get_field('ms_targets')[1], self.cfg)
+            # plot_single_img_boxes(img[6:],  target.get_field('ms_targets')[2], self.cfg)
         return img, target, idx
 
 

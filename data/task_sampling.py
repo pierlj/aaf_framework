@@ -45,7 +45,7 @@ class TaskSampler():
             DatasetCatalog = paths_catalog.DatasetCatalog
             self.dataset_path = '/'.join(getattr(DatasetCatalog,
                     'DATASETS')[self.cfg.DATASETS.TRAIN[0]]['img_dir'].split('/')[:-1])
-            with open(os.path.join(self.dataset_path, 'classes_split.txt'), 'r') as f:
+            with open(os.path.join(self.dataset_path, self.cfg.FEWSHOT.SPLIT_FILE), 'r') as f:
                 lines = f.readlines()
                 assert len(lines)== 2, 'Wrong classes split file format, should be: \ntrain_classes:1,2,3 \n test_classes:4,5,6'
                 self.c_train = list(map(lambda x: int(x), lines[0][:-1].split(':')[-1].split(',')))

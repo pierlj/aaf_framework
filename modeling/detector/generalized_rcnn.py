@@ -52,6 +52,9 @@ class GeneralizedRCNN(nn.Module):
             raise ValueError("In training mode, targets should be passed")
         images = to_image_list(images)
 
+        if self.cfg.AMP.ACTIVATED and self.cfg.AMP.MODE == 'O3':
+            images.tensors = images.tensors.half()
+
         features = self.backbone(images.tensors)[:self.cfg.FEWSHOT.FEATURE_LEVEL]
         proposals, proposal_losses = self.rpn(images, features, targets, classes=classes, support=support)
         if self.roi_heads:
@@ -93,16 +96,55 @@ class FSGeneralizedRCNN(GeneralizedRCNN):
         support_targets = []
         self.support_examples__ = []
         self.support_targets__ = []
+        L = self.cfg.FEWSHOT.FEATURE_LEVEL
+
         for idx, (images, targets, _) in enumerate(support_loader):
             # display support images
             # plot_img_only(images.tensors[0], self.rpn.head.aaf_module.cfg)
             # print(images.tensors.shape)
-            self.support_examples__.append(images.tensors.clone())
+            if self.cfg.FEWSHOT.SUPPORT.CROP_MODE == 'MULTI_SCALE':
+                N, C, H, W = images.tensors.shape
+                images.tensors = images.tensors.reshape(3*N, C//3, H, W)
+                # targets = [ms_target for target in targets for ms_target in target.get_field('ms_targets')]
+                self.support_examples__.append(images.tensors[2::3].clone())
+            else:
+                self.support_examples__.append(images.tensors.clone())
+
             self.support_targets__.append(targets)
-            images = images.to(device)
+            images = images.to(device, non_blocking=True)
             targets = [target.to(device) for target in targets]
             images = to_image_list(images)
-            features = self.support_features_extractor(images.tensors)
+
+            if self.cfg.AMP.ACTIVATED and self.cfg.AMP.MODE == 'O3':
+                images.tensors = images.tensors.half()
+
+            features = self.support_features_extractor(images.tensors)[:L]
+            feat_ch = features[0].shape[1]
+            if self.cfg.FEWSHOT.SUPPORT.CROP_MODE == 'MULTI_SCALE':
+                # features = [
+                #     feat.reshape(N, 3, feat_ch, H // (8 * 2**l),
+                #                  W // (8 * 2**l))[:, l]
+                #     for l, feat in enumerate(features)
+                # ]
+                features_masked = []
+                for l, feat in enumerate(features):
+                    ms_targets = [t for target in targets for t in target.get_field('ms_targets')]
+                    masks = torch.zeros_like(feat)
+                    for i, ms_target in enumerate(ms_targets):
+                        bbox = ms_target.resize(feat.shape[-2:]).bbox[0]
+                        bbox = bbox.clamp(0, feat.shape[-1])
+                        bbox[:2] = bbox[:2].floor()
+                        bbox[2:] = bbox[2:].ceil()
+                        bbox = bbox.long()
+                        masks[i, :, bbox[1]:bbox[3], bbox[0]:bbox[2]] = 1
+                    feat = feat.reshape(N, 3, feat_ch, *feat.shape[-2:])
+                    masks = masks.reshape(N, 3, feat_ch, *feat.shape[-2:])
+                    feat = feat * masks
+                    feat = feat.sum(dim=[-1,-2], keepdim=True) / masks.sum(dim=[-1,-2], keepdim=True)
+                    # features_masked.append(feat.mean(dim=1)) # average multiple scale
+                    features_masked.append(feat[:, l]) # keep only corresponding level
+                features = features_masked
+
             support_features.append(features)
             support_targets = support_targets + targets
 

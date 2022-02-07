@@ -75,6 +75,7 @@ class Evaluator():
                                             classes)
         else:
             query_loader = self.data_handler.get_dataloader(seed=seed)
+            self.contiguous_label_map = query_loader.dataset.contiguous_category_id_to_json_id
             classes = np.array(list(query_loader.dataset.coco.cats.keys())) + 1
             predictions = self.compute_pred(query_loader)
 
@@ -129,15 +130,17 @@ class Evaluator():
             'train': accumulated_res_test,
             'test': accumulated_res_train
         }
-
+        if seed is not None:
+            self.data_handler.rng_handler_free.update_seeds(seed)
         for eval_ep in range(n_episode):
-            if seed is not None:
-                self.data_handler.rng_handler.update_seeds(seed)
+
             loaders = self.data_handler.get_dataloader(seed=seed)
             for setup in ['train', 'test']:
                 res_all_cls = {}
                 for q_s_loaders in loaders[setup]:
-                    _, res_cls = self.eval(verbose=False, loaders=q_s_loaders, seed=seed)
+                    # Important to set seed to None here so that same exemples are not sampled
+                    # at each episode
+                    _, res_cls = self.eval(verbose=False, verbose_classes=verbose, loaders=q_s_loaders, seed=None)
                     # this will overwrite some keys if the last batch is padded
                     # but only one eval is retained for each class
                     res_all_cls.update(res_cls)
@@ -152,6 +155,7 @@ class Evaluator():
                 all_res[setup][k] = np.vstack(all_res[setup][k]).mean(axis=0)
 
         return self.prettify_results_fs(all_res, verbose=verbose)
+
 
     def eval_no_fs(self, seed=None, verbose=False):
         """
@@ -201,6 +205,7 @@ class Evaluator():
                             img_id) in enumerate(query_loader):
                 support = self.model.compute_support_features(
                     support_loader, self.device)
+
                 images = images.to(self.device)
                 pred_batch = self.model(images, classes=classes, support=support)
                 for idx, pred in enumerate(pred_batch):

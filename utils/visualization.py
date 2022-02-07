@@ -1,11 +1,11 @@
-import numpy as np
 import os, sys
 
-# import matplotlib
-# matplotlib.use('TkAgg')
+import matplotlib
+matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import matplotlib.colors
+import numpy as np
 
 
 def plot_single_img_boxes(image, boxes_list, cfg, backend=None, threshold=0.0, bgr=False):
@@ -43,9 +43,15 @@ def plot_single_img_boxes(image, boxes_list, cfg, backend=None, threshold=0.0, b
 def plot_img_boxes(images, boxes, index, cfg, backend=None, threshold=0.0):
     plot_single_img_boxes(images.tensors[index], boxes[index], cfg, backend=backend, threshold=threshold)
 
-def plot_img_only(image, cfg):
-    img = (image.permute(1, 2, 0).cpu().numpy() * cfg.INPUT.PIXEL_STD +
-           cfg.INPUT.PIXEL_MEAN) / 255
+def plot_img_only(image, cfg=None):
+    if cfg is not None:
+        img = (image.permute(1, 2, 0).cpu().numpy() * cfg.INPUT.PIXEL_STD +
+            cfg.INPUT.PIXEL_MEAN) / 255
+    else:
+        img = image - image.min()
+        img /= img.max()
+        img = img.permute(1, 2, 0).cpu().numpy()
+
     fig, ax = plt.subplots(1, figsize=(10, 10))
     img = img.clip(0, 1)
     ax.imshow(img[:, :, ::-1])

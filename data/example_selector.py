@@ -25,7 +25,7 @@ class ExampleSelector():
         """
         Select elements inside dataset for both query and support set.
         Different behaviors are expected when finetuning is on or off 
-        and following the network params.
+        and according the network params.
 
         Arguments:
             dataset: dataset object in which sampling is allowed

@@ -125,6 +125,8 @@ class COCODataset(COCODataset_):
                 **kwargs):
 
         self.cfg = kwargs['cfg']
+        self.is_train = kwargs['is_train']
+        del kwargs['is_train']
         del kwargs['cfg']
 
         super(COCODataset, self).__init__(*args, **kwargs)
@@ -217,7 +219,8 @@ class SupportCOCODataset(COCODataset):
         self.filter_class_table()
 
         self.support_cropper = CroppingModule(self.cfg,
-                                              self.cfg.FEWSHOT.SUPPORT.CROP_MODE)
+                                              self.cfg.FEWSHOT.SUPPORT.CROP_MODE, 
+                                              self.is_train)
 
         if rng is not None:
             self.rng = rng
@@ -246,6 +249,7 @@ class SupportCOCODataset(COCODataset):
         if self.crop:
             # plot_single_img_boxes(img, target, self.cfg)
             img, target = self.support_cropper.crop(img, target)
+            # plot_single_img_boxes(img, target, self.cfg)
             # plot_single_img_boxes(img[:3], target.get_field('ms_targets')[0], self.cfg)
             # plot_single_img_boxes(img[3:6],  target.get_field('ms_targets')[1], self.cfg)
             # plot_single_img_boxes(img[6:],  target.get_field('ms_targets')[2], self.cfg)

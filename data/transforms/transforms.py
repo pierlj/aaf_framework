@@ -1,6 +1,6 @@
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved.
 import random
-
+import numpy as np
 import torch
 import torchvision
 from torchvision.transforms import functional as F
@@ -169,15 +169,15 @@ class RandomResizeCrop(object):
 
                 overall_box = self.compute_overall_bbox(selected_target)
 
-                delta = (torch.randn(4) + 0.5).clamp(0, 1)
+                delta = (0.25 * torch.randn(4) + 0.5).clamp(0, 1)
 
                 cropping_box = overall_box + (torch.tensor(
-                    [0, 0, *image.shape[-2:]]) - overall_box) * delta
+                    [0, 0, *image.shape[-2:][::-1]]) - overall_box) * delta
                 cropping_box = cropping_box.long()
                 cropping_box = self.square_box(cropping_box, image.shape[-2:])
 
                 over_box_list = BoxList(cropping_box.unsqueeze(0),
-                                        image.shape[-2:])
+                                        image.shape[-2:][::-1])
 
                 iou_with_target = boxlist_iou(over_box_list, target)[0]
                 selected_indices_all = torch.nonzero(

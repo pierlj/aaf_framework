@@ -51,7 +51,7 @@ class Evaluator():
             - all_classes:  
         """
         if seed is not None:
-            self.data_handler.rng_handler.update_seeds(seed)
+            self.data_handler.rng_handler_free.update_seeds(seed)
 
         if self.cfg.FEWSHOT.ENABLED:
             if loaders is None:

@@ -34,6 +34,7 @@ def build_dataset(dataset_list, transforms, dataset_catalog, cfg=None, is_train=
         data = dataset_catalog.get(dataset_name)
         args = data["args"]
         args["cfg"] = cfg
+        args["is_train"] = is_train
         if mode == 'support' or (mode == 'finetune' and is_train) :
             data["factory"] = mode.capitalize() + data["factory"]
             args["rng"] = rng

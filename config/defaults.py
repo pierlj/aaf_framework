@@ -405,6 +405,8 @@ _C.FEWSHOT.FEATURE_LEVEL = 5
 
 _C.FEWSHOT.SPLIT_FILE = 'classes_split.txt'
 
+_C.FEWSHOT.USE_PROTO_CLASSIFIER = False
+
 #------------------------------------------------------------------------------#
 # Support computation
 #------------------------------------------------------------------------------#

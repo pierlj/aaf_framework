@@ -75,7 +75,14 @@ class FusionIdentity(BaseFusionModule):
         support_features = features['support' + self.input_name]
         support_targets = features['support_targets']
 
-        features.update({self.output_name: query_features})
+        output_features = []
+        for feat in query_features:
+            B, N, C, H, W = feat.shape
+            K = self.cfg.FEWSHOT.K_SHOT
+            feat = feat.reshape(B, N//K, K, C, H, W).mean(dim=2)
+            output_features.append(feat)
+
+        features.update({self.output_name: output_features})
 
 
 @registry.FUSION_MODULE.register("ADD")

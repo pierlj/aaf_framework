@@ -30,7 +30,7 @@ class ProtoFCOSHead(torch.nn.Module):
         self.use_dcn_in_tower = cfg.MODEL.FCOS.USE_DCN_IN_TOWER
 
         self.aaf_module = AAFModule(cfg)
-        aaf_channels = self.aaf_module.aaf_cfg.OUT_CH
+        aaf_channels = cfg.MODEL.RESNETS.BACKBONE_OUT_CHANNELS
 
         cls_tower = []
         bbox_tower = []

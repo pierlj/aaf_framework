@@ -20,8 +20,7 @@ torch.backends.cudnn.benchmark = True
 cfg.merge_from_file(
     'aaf_framework/config_files/fcos_R_50_FPN_DOTA_baseline.yaml')
 cfg.merge_from_list([
-    'OUTPUT_DIR',
-    '/home/pierre/Documents/PHD/Experiments_FSFCOS/DOTA/DANA_RESIZE_AUG_DIOR',
+    'OUTPUT_DIR', '/home/pierre/Documents/PHD/Experiments_FSFCOS/DOTA/PFRCN_DOTA',
     'FEWSHOT.SUPPORT.CROP_MODE', 'RESIZE',
     'AUGMENT.VFLIP_PROBA', 0.5,
     'AUGMENT.BRIGHTNESS', 0.4,
@@ -32,10 +31,11 @@ cfg.merge_from_list([
     'AUGMENT.RANDOM_CROP_PROBA', 0.5,
     'FEWSHOT.K_SHOT', 1,
     'SOLVER.IMS_PER_BATCH', 8,
-    'FEWSHOT.AAF.CFG', '/home/pierre/Documents/PHD/aaf_framework/config_files/aaf_module/dana.yaml',
-    'DATASETS.TRAIN', ("dior_train",),
-    'DATASETS.TEST', ("dior_test",),
-    'DATASETS.VAL', ("dior_val",),
+    'FEWSHOT.AAF.CFG', '/home/pierre/Documents/PHD/aaf_framework/config_files/aaf_module/identity.yaml',
+    'FEWSHOT.USE_PROTO_CLASSIFIER', True,
+    'DATASETS.TRAIN', ("dota_train", ),
+    'DATASETS.TEST', ("dota_test", ),
+    'DATASETS.VAL', ("dota_val", ),
     # 'MODEL.FCOS.NUM_CLASSES', 21,
     'FEWSHOT.EPISODES', 1500,
     'FINETUNE.EPISODES', 15000,
@@ -44,7 +44,6 @@ cfg.merge_from_list([
     # 'INPUT.MIN_SIZE_TEST', 800,
     # 'INPUT.MAX_SIZE_TEST', 800,
     'RANDOM.SEED', 2048,
-
 ])
 
 trainer = Trainer(cfg)

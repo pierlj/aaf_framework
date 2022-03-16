@@ -91,7 +91,7 @@ on the version of the python packages you use.
 
 - `cpu/vision.h` file not found: replace all occurences in files under `fcos_core/csrc/cpu/` by `vision.h` (see this [issue](https://github.com/tianzhi0549/FCOS/issues/351)). 
 - Error related to `AT_CHECK` with pytorch > 1.5 : replace all occurences by `TORCH_CHECK` (see this [issue](https://github.com/tianzhi0549/FCOS/issues/357).
-- Error related to `torch._six.PY36`: replace all occurence of `PY36` by `PY37` or check this [PR](https://github.com/tianzhi0549/FCOS/pull/359/commits/f06023f9d4e7e16aa0d947fd8a3f5d30074bf35d)
+- Error related to `torch._six.PY36`: replace all occurence of `PY36` by `PY37` or check this [PR](https://github.com/tianzhi0549/FCOS/pull/359/commits/f06023f9d4e7e16aa0d947fd8a3f5d30074bf35d).
 
 ## Results
 Results on pascal VOC, COCO and DOTA. 

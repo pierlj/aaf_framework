@@ -93,7 +93,7 @@ on the version of the python packages you use.
 - Error related to `torch._six.PY36`: replace all occurence of `PY36` by `PY37`.
 
 ## Results
-Results on pascal VOC, COCO and DOTA. 
+Results on pascal VOC, COCO and DOTA and DIOR. 
 
 
 

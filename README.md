@@ -1,8 +1,8 @@
 # AAF framework 
 
 ## Framework generalities
-This repository contains the code of the AAF framework proposed in this
-[paper](https://arxiv.org/abs/2201.02052). The main idea behind this work is to propose
+This repository contains the code of the AAF framework proposed in thishttps://arxiv.org/abs/2210.13923
+[paper](https://arxiv.org/abs/2210.13923). The main idea behind this work is to propose
 a flexible framework to implement various attention mechanisms for Few-Shot
 Object Detection. The framework is composed of 3 different modules: Spatial Alignment, 
 Global Attention and Fusion Layer, which are applied successively to combine 
